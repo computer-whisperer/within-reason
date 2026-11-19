@@ -160,7 +160,9 @@ line say how often.
 **The order budget (since 2026-11-10, H-HOST-ORDER-BUDGET).** Every seat's unit orders are held to 100 a second, the Apex
 average, in the shim (`crates/ai-host/src/budget.rs`). Only a move ever waits, the newest per unit replacing an older.
 The engine log carries a line a game minute per seat, `orders f=… minute: sent N (moves M), held, replaced, dropped,
-waiting, longest wait`. `WITHIN_REASON_ORDER_CAP` in the environment sets the rate in orders a second, and 0 turns the
+waiting, longest wait`, then the first-class moves and the orders past the bucket, and from 2026-11-19 `pulled onto
+the map N`: the orders whose place was off the map and went to its nearest point instead (H-HOST-ON-THE-MAP; the
+engine drops such an order without a word). `WITHIN_REASON_ORDER_CAP` in the environment sets the rate in orders a second, and 0 turns the
 budget off; the engine inherits it, as do the duels' shims. A drill's per-second `sent` counts what the lane asked for,
 before the budget. What reached the engine is in that line, or in the demo (`run/demo_net.py`, a column per AI seat).
 

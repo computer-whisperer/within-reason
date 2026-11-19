@@ -260,6 +260,91 @@ For the hand-built TAS of one engagement (`docs/design/2026-09-28-tas-micro.md`,
   the end's value for a fight decided sooner: the live outcome a scenario file carries is scored at the same two) and
   `log`. `batch.json` records the script, the delay, `theirs`, the seeds, the economy and the command line.
 
+### Air drills: a bombing run flown again (2026-11-16)
+
+`docs/design/2026-11-16-air-intercept.md`. A run is cut from a game's tape and flown against a defence we choose:
+
+    run/air_scene.py <match dir | audit.jsonl> --frame F --target X,Z --bombers corhurc [--prelude X,Z;X,Z]
+        [--fighters armfig*12@X,Z] [--add armarad@X,Z ...] [--arm none|hold|idle|patrol|fight|spread|patrol_fight|patrol_spread]
+        [--state 2] [--delay 0.5] [--loop 900] [--toward X,Z] [--lead 12] --out PREFIX
+    target/release/duel --scenario PREFIX.json --script PREFIX.script.json --reps 8 --parallel 1 --time-limit 150 --label L
+    run/air_drill.py run/matches/<batch> ... [--reps]
+
+The cutter reads the tape's audit dump (`tape audit <game.tape> -o -`, or a file of it). Side 1 is the bombers that
+were given the attack at the ground, where they stood at frame `F`, and the script's rows for them are their player's
+own move and attack orders from `F` on, `--lead` seconds late. Side 0 is ours as it stood at `F`, finished units only:
+everything within `--block` (1,200) of the target, the anti-air within `--anti-air` (3,000), every radar, everything
+within `--near-path` (1,200) of where the bombers then flew; no aircraft of ours, no commander. `--fighters` and
+`--add` put the defence under test beside it, and `--arm` writes the fighters' rows (the tool's own text says what
+each arm is). The bombers are given standing and a Hailstorm takes fifteen seconds to its speed: cut from where they
+waited or far out (the first cut, from thirteen seconds before the first contact, had them come at 170 to 220 a
+second in a column a thousand long, and the anti-air killed three before the block).
+
+What the scripts gained for it (`scenario.rs`): a row's `"side": 1` orders side 1, and a side with a row is the
+script's alone (side 0 always is: a script with rows for side 1 only leaves ours standing, the baseline); a row's
+`"from": "contact"` counts its `t` from the first tick its side had a unit of the other side in sight or on radar;
+the rows `patrol` (`Command::Patrol`, new in the protocol: the engine's patrol, further corners queued), `movestate`
+and `attack_ground` (`Command::FireAt`); the file's `"contact_after": S` counts no contact in the first `S` seconds.
+The per-second log says what each side has of the other (`sees`: {x, y: [[index, 1 in sight or 0 on radar alone]]})
+and notes the first contact among its `orders` (`{"contact": side, "f", "sees"}`).
+
+**Why `contact_after`.** In the first duel of a match (air-run2-none, 2026-11-16) one bomber given standing 3,200
+from anything of ours was in our side's sight, type known, for five seconds from its first order, and never in the
+duels after it on the same field; the cause was not found (the engine's own `getEnemyUnitsInRadarAndLos` said so).
+The cutter writes `contact_after` as the lead plus eight seconds.
+
+**How near the drill is to the game** (the baselines, no fighters; `air-run1-none`, `air-run2-none`, three
+repetitions each): run 1 lost 13,250 to 13,480 metal and three fusions with no bomber down before the bombs, seventeen
+seconds after the first contact (the game: 14,540, three fusions, none down, fifteen seconds); run 2 lost 39,782 to
+39,822 by the same chain, fusion then advanced fusion, seventeen seconds after the first radar contact (the game:
+43,807 with what stood unfinished, seventeen seconds). In the drill of run 2 the anti-air has every bomber shot down
+about a second before the first bomb lands, where the game's had one of seven; the bombs of two to four still land.
+
+**The wing (2026-11-17, H-MICRO-INTERCEPT).** `--arm intercept` writes one row for the fighters,
+`{"t": 0, "unit": [...], "cmd": "intercept", "x": X, "z": Z}` (the place is the target): the row hands them to the
+lane's wing (`crates/micro/src/intercept.rs`), which loiters them, scrambles those a threat needs at what comes at
+the place and flies them; nothing counted from contact is needed. The wing's bounds are the lane's
+(`WITHIN_REASON_INTERCEPT=guard=2000,leash=3500,seconds=18` in the duel's environment sets others for a drill, and
+from 2026-11-18 `closedeg=6,closegap=0.5`, the bearing and the seconds of the close's sending rule; until
+2026-11-18 a row's `keep` and `--keep`). A script with an `intercept` row (as with a `rove` row) keeps
+side 0's lane on, for the units a row handed it alone: from 2026-11-17 a scripted side's other units get no reflex
+from the lane (before, a script with a rove row put them under the flee, the fan and the kite). The wing's scramble
+and return are notes in the per-second log's `orders` (`{"wing": "scrambled", "contacts", "at", "out", "fighters"}`,
+`{"wing": "returned", "seconds"}`), and each line carries `wing`: the contacts it has taken on, what else flies in
+its sight (`watched`) and its fighters loitering, returning, closing, turning and trailing. `WITHIN_REASON_ORDER_CAP=8` holds a host to that many orders a second (0: no budget), and the host's line
+`orders f=… minute: …` in a batch's `00/engine.log` says what it sent, held and sent first-class, and how many orders' places it pulled onto the map (the wing sits on
+either host from duel to duel: both hosts' lines are to be summed). `WITHIN_REASON_MICRO_DEBUG=1` prints each fighter's state every half second
+(its phase, speed, heading off the bombers', how far ahead of the rearmost and across), its turn-in and trail
+lines, and from 2026-11-18 a line for every move it is sent with the phase, the turn's branch and the reason
+(`sent a move (close) another heading`, `(turn: comes round) the point shifted`; from 2026-11-19 with `, its point off the map` when the point asked for was and the fighter is sent to where its line leaves the map). `run/air_drill.py --places` reads where the fighters were from the merge to the bombs (in firing position,
+inbound, ahead, wide, far) and the hits a second each place landed: the instrument the law was found with
+(`docs/design/2026-11-16-air-intercept.md` section 6.2). `run/air_drill.py --leash` reads how far the fighters went
+from the place they keep and whether they came back (the furthest any got, the seconds with one over 1,500 out,
+where the furthest was in the last second, the most the wing had off its loop at once): the instrument of the
+loop's properties (section 8).
+
+**Made-up raids (2026-11-17).** `run/air_raid.py <cut prefix> --target X,Z --his "corhurc*7@5580,700>bomb" [--his ...]
+[--without anti-air] --out PREFIX` keeps a cut's own side and its rows and replaces his recorded bombers by groups
+we choose: a type and count at a place, waypoints, and `bomb` (an attack at the ground at the target), `fight` (an
+escort) or `pass` (a scout flying through); `+S` delays a group, `~W` flies it line abreast. `--without` takes our
+anti-air (or named types) out of the cut. Section 6.4 of the design note is its first use. From 2026-11-18, for
+aircraft that are not a raid (section 8.1): `>!X,Z` is a fight order to a point, `%R` flies the waypoints R times
+over (a group milling about a place; each lap's orders go out as the lap before it ends, since a unit given thirty
+orders at once flies none), a group with no waypoint that ends in `pass` is given no order (a turret), and
+`--row T,G,move|fight,X,Z` is one more order for group G, T seconds after the lead (fighters called back). Two
+things the bench does with such scenes: a duel whose aircraft are all shot down or fly out ends on the stalemate
+clock (72 seconds), and after a duel in which his fighters were called back the engine's game ends, so such a
+scene runs three repetitions a batch.
+
+**A game's patrol (2026-11-18).** `run/air_patrol.py <match dir>` reads an air patrol out of a game, the hands' log
+joined with the game's tape: the group, its place and the bounds the hands' words carried; how far the furthest
+fighter was from the place with no scramble open; one row a scramble (the fighters sent, at how many contacts how
+far out, the seconds until all were back, his aircraft inside the leash meanwhile and the nearest any came to the
+place, the furthest a fighter went, the fighter-seconds beyond the leash, the fighters lost, his aircraft that
+went down inside the leash, what of ours his aircraft destroyed); his aircraft within the guard of the place with
+no scramble open; and everything of ours his aircraft destroyed. The tape names no attacker for an aircraft (it is
+destroyed when it has crashed), so his aircraft down are counted by where and when, not by who shot them.
+
 ## The raid scenario: a picket body against scripted raiders (2026-09-26)
 
 `duel --scenario raid` (`crates/arena/src/bin/duel/raid.rs`; `docs/design/2026-09-26-threat-response.md` §3) is the

@@ -15,8 +15,8 @@ pub(crate) fn debug_on() -> bool {
     *ON.get_or_init(|| std::env::var_os("WITHIN_REASON_GROUP_DEBUG").is_some_and(|v| v != "0" && !v.is_empty()))
 }
 
-/// What a group is to do. The first four walk to the order's place as an army of companies; a hunt and a rove have no
-/// formation and are run raw.
+/// What a group is to do. The first four walk to the order's place as an army of companies; a hunt, a rove and an
+/// intercept have no formation and are run raw.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum GroupKind {
     /// Walk there and stand; nothing on the way is fought (the hands' walk, a Move).
@@ -34,6 +34,17 @@ pub enum GroupKind {
     /// Every member is a rover (H-MICRO-ROVE, `rove.rs`), within the region when one is given (north-west and
     /// south-east corners). The route is ignored.
     Rove { within: Option<(Vec3, Vec3)> },
+    /// Every member is a fighter of a wing that keeps the air round a place (H-MICRO-INTERCEPT, `intercept.rs`): up
+    /// on a loop over the place, and flown at what flies at it, as many fighters as that needs and no further from
+    /// the place than the wing's leash. The route is ignored.
+    Intercept { place: Vec3 },
+}
+
+impl GroupKind {
+    /// A hunt, a rove and an intercept have no formation: their members are run raw, each by its own rule.
+    pub fn formation(&self) -> bool {
+        !matches!(self, GroupKind::Hunt(_) | GroupKind::Rove { .. } | GroupKind::Intercept { .. })
+    }
 }
 
 /// A hunt's terms (H-MICRO-HUNT): the quarry, how far any hunter may go from where it stood when the lane first ran

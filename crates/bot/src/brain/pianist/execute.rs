@@ -541,6 +541,16 @@ impl Brain {
                 group.set_task(GroupTask::Rove { within }, frame);
                 group.last_order = frame;
             }
+            Order::AirPatrol(place_name) => {
+                // The group's fighters patrol the air over the place (H-MICRO-INTERCEPT): a task like any other,
+                // the lane taking them from the next tick and choosing what they fly at; any later pick is the way
+                // back (the air-intercept design §7).
+                if let Some(p) = place(place_name) {
+                    let group = &mut pianist.groups[index];
+                    group.set_task(GroupTask::AirPatrol { at: p.at, place: p.name.clone() }, frame);
+                    did = Some(format!("patrols the air over {}: its fighters circle there and fly at the aircraft of his that come at it, never further than {:.0} from it", p.name, micro::intercept::bounds().leash));
+                }
+            }
             _ => {}
         }
         self.pianist = Some(pianist);

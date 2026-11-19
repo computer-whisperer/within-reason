@@ -143,7 +143,26 @@ whenever you hit that edge.
   attack (on one unit of a party, its commander when it is there; or on his buildings at a place), and its
   gunships and bombers rove as soldiers do (`rove`, the regions), keeping out of the reach of anti-air that
   would kill them soon: Banshees on his extractors, one each across the map, are thebluegecko's use of it; fighters and
-  Shurikens do not rove. A group of stun aircraft alone (Shurikens, Stilettos) has `stun_<party>` in place of the
+  Shurikens do not rove. A group whose every aircraft is a fighter has `air_patrol_<place>` (an air patrol over a
+  place the packet names for it, the place it stands at among them): its fighters circle over the place in the air,
+  and code flies them ten times a second at the aircraft of his that come at the place: those on a course that passes
+  within 1,500 of it and less than 18 seconds out, or already that near. Only as many fighters go as shoot them down
+  (six Falcons a Hailstorm, one a scout or a fighter), the rest stay over the place; they turn in behind his bombers
+  to shoot them from astern, follow nothing further than 3,000 from the place, and fly back to it after (a fighter
+  ordered straight at a bomber passes it nose to nose with two shots and is then left behind it; a fighter group on a
+  hold flies at nothing). An aircraft of his that passes at a distance or mills about its own station is left be: the
+  group's entry says what of his it sees and is not flying at. So the patrol is a guard of its place, not a hunt: to
+  kill his aircraft where they stand is an order to attack them. It is a pick like roving: say the group, the job and the place
+  in the packet ("group_F (the Falcons): patrols the air over home"; `mark` the thing to keep when no place names
+  it), while it patrols its menu has no party moves, and any later pick takes it elsewhere. What the drills measured
+  of it (twelve Falcons against five to twelve tier-2 bombers at a base as it stood in a game): it keeps what it
+  circles, so its place is what his bombers want, the reactors before the plant that made the fighters (the reactors
+  under it stood in 8 runs of 8 from each of four directions; a fusion 2,000 from its place fell in 8 of 8, with
+  fifteen seconds of warning); it helps the anti-air under it and does not replace it (the patrol shoots down about
+  four of seven Hailstorms before the drop and cripples the rest, which the anti-air finishes: with the anti-air
+  taken away it kept the reactors in 2 runs of 8); and a fighter stays behind only what is slower than it (a Falcon
+  at 289 behind a Hailstorm at 248, not behind a Liche at 295 or a Stiletto at 300: those take tier-2 fighters, a
+  Highwind flies 358). A group of stun aircraft alone (Shurikens, Stilettos) has `stun_<party>` in place of the
   attack: it stuns the party's units one after another and kills nothing, so it pays only while other fire of ours hits
   them; a commander cannot be stunned.
 - Stuns: a unit stunned neither moves nor shoots for the seconds the picture gives ("3 of them stunned, 2-6 s more"),

@@ -773,12 +773,16 @@ fn parse_args() -> io::Result<Options> {
     if let Some(path) = script_path {
         let Some(scenario) = &options.scenario else { usage("--script needs --scenario FILE") };
         options.script = Some(Script::load(&path, scenario).unwrap_or_else(|e| usage(&e)));
-        if options.script.as_ref().is_some_and(Script::roves) {
+        if options.script.as_ref().is_some_and(Script::hands_to_lane) {
             // Its rovers are the lane's; the script's other units are loose soldiers under its reflexes.
             options.lanes[0] = LaneMode::On;
         } else if options.lanes[0] != LaneMode::Off {
             eprintln!("--script: side 0 is the script's alone; its lane is off");
             options.lanes[0] = LaneMode::Off;
+        }
+        if options.script.as_ref().is_some_and(|s| s.orders(1)) && options.lanes[1] != LaneMode::Off {
+            eprintln!("--script: it has rows for side 1, which is the script's alone too; its lane is off");
+            options.lanes[1] = LaneMode::Off;
         }
     }
     if options.theirs == Control::Track && options.scenario.as_ref().is_none_or(|s| s.sides[1].track.is_empty()) {

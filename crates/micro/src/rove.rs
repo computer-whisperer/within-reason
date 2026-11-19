@@ -138,6 +138,10 @@ const NEEDLE_LIP_COST: u32 = 10;
 const NEEDLE_LEG: f32 = 320.0;
 /// A way is planned again after this long, and when a shooter comes to cover one of its legs.
 const NEEDLE_REPLAN_FRAMES: i32 = 5 * FRAMES_PER_SECOND;
+/// But no sooner than this after it was planned: a way planned again is sent again whole, thirty legs and more, and
+/// a shooter walking toward a way covers a leg of each new one within the half second. The evade steps the rover out
+/// of a bar meanwhile.
+const NEEDLE_HOLD_FRAMES: i32 = FRAMES_PER_SECOND;
 /// After a search that found no way, no field is run for this long: the straight ways alone.
 const NEEDLE_RETRY_FRAMES: i32 = 3 * FRAMES_PER_SECOND;
 /// A leg's cell quantisation: a leg this much inside a bar is not "covered" (a cell's half diagonal is 11).
@@ -347,6 +351,13 @@ fn legs_of(from: Vec3, points: &[Vec3], to: Vec3) -> Vec<Vec3> {
         legs.push(to);
     }
     legs
+}
+
+/// Whether a way planned at `planned` still stands at `frame`: not yet stale, and its legs clear (`clear`, asked
+/// only once it has stood `NEEDLE_HOLD_FRAMES`).
+fn way_stands(planned: i32, frame: i32, clear: impl FnOnce() -> bool) -> bool {
+    let age = frame - planned;
+    age < NEEDLE_REPLAN_FRAMES && (age < NEEDLE_HOLD_FRAMES || clear())
 }
 
 /// Whether every leg of a way from `from` keeps every shooter at its bar, less a cell of tolerance.
@@ -591,6 +602,13 @@ impl Lane {
             // Banshee gave up its next place under the turret's fire).
             let known_cover = |p: Vec3| shaded.is_some() || flies && air_sources.iter().any(|s| s.pos.dist2d(p) <= keep_off(s));
             let stats = view.stats(unit.def).unwrap_or_default();
+            // What a way to a place or a healer is planned round and judged by: not a shooter at least as fast as
+            // the rover. No way keeps ahead of one, and its bar moves every tick: a bomber crossing the map covered a
+            // leg of every way each tick, and each way was planned again and sent again whole (air-patrol-3-apex50,
+            // 12:09: two Rovers, 2,067 queued moves in eight seconds, and two places given up as "its way passes the
+            // reach of something that can shoot it"). The rover runs from such a shooter when it comes into reach,
+            // as from any (the evade below reads `evade_danger`).
+            let way_danger: Vec<&Source> = danger.iter().copied().filter(|s| !(s.mobile && s.speed >= stats.speed)).collect();
             let sight = if stats.sight > 0.0 { stats.sight } else { DEFAULT_SIGHT };
             // A region the order confines it to: nothing outside it is looked at or attacked.
             let inside = |p: Vec3| within.is_none_or(|(a, b)| p.x >= a.x && p.x <= b.x && p.z >= a.z && p.z <= b.z);
@@ -905,7 +923,7 @@ impl Lane {
                         } else {
                             // A shadow way's last leg runs down the ray inside the cover's bar: clear by construction.
                             let checked = |w: &Way| -> Vec<Vec3> { if shooter.is_some() { w.legs[..w.legs.len().saturating_sub(1)].to_vec() } else { w.legs.clone() } };
-                            let way_ok = at_stand || rover.way.as_ref().is_some_and(|w| frame - w.planned < NEEDLE_REPLAN_FRAMES && legs_clear(&danger, &standing_bar, unit.pos, &checked(w)));
+                            let way_ok = at_stand || rover.way.as_ref().is_some_and(|w| way_stands(w.planned, frame, || legs_clear(&danger, &standing_bar, unit.pos, &checked(w))));
                             if way_ok {
                                 chosen = Some((e, stand, kind));
                             } else {
@@ -1004,7 +1022,7 @@ impl Lane {
                         ranked.sort_by(|a, c| a.0.total_cmp(&c.0));
                         for (_, b, d) in ranked {
                             let at = point_beside(b, d);
-                            if let Found::Way(legs) = needle(ground.as_deref(), &danger, &keep_off, unit.pos, at, &mut budget) {
+                            if let Found::Way(legs) = needle(ground.as_deref(), &way_danger, &keep_off, unit.pos, at, &mut budget) {
                                 if debug {
                                     eprintln!("{} f={frame} micro: {name}#{} at {:.0} of {:.0} goes to be healed by {} at ({:.0}, {:.0})", view.label(), unit.id.0, unit.health, unit.max_health, b.id.0, at.x, at.z);
                                 }
@@ -1024,9 +1042,9 @@ impl Lane {
                     // The point moves with the builder: the way is planned again when its end has moved, when a leg is
                     // covered, or when it is stale; at the point the rover stands.
                     let at_point = rover.way.as_ref().is_some_and(|w| w.legs.last().is_some_and(|l| l.dist2d(at) < SAME_MOVE));
-                    let way_ok = at_point && rover.way.as_ref().is_some_and(|w| frame - w.planned < NEEDLE_REPLAN_FRAMES && legs_clear(&danger, &keep_off, unit.pos, &w.legs));
+                    let way_ok = at_point && rover.way.as_ref().is_some_and(|w| way_stands(w.planned, frame, || legs_clear(&way_danger, &keep_off, unit.pos, &w.legs)));
                     if !way_ok && unit.pos.dist2d(at) > STAND_DRIFT {
-                        match needle(ground.as_deref(), &danger, &keep_off, unit.pos, at, &mut budget) {
+                        match needle(ground.as_deref(), &way_danger, &keep_off, unit.pos, at, &mut budget) {
                             Found::Way(legs) => rover.way = Some(Way { legs, planned: frame, fresh: true }),
                             Found::Untried => {}
                             Found::NoWay => {
@@ -1309,9 +1327,9 @@ impl Lane {
                     // Its way: kept while its legs are clear and it is fresh, else planned again; none, and the
                     // place is given up.
                     let look = goal.look;
-                    let way_ok = rover.way.as_ref().is_some_and(|w| frame - w.planned < NEEDLE_REPLAN_FRAMES && legs_clear(&danger, &keep_off, unit.pos, &w.legs));
+                    let way_ok = rover.way.as_ref().is_some_and(|w| way_stands(w.planned, frame, || legs_clear(&way_danger, &keep_off, unit.pos, &w.legs)));
                     if !way_ok {
-                        match needle(ground.as_deref(), &danger, &keep_off, unit.pos, look, &mut budget) {
+                        match needle(ground.as_deref(), &way_danger, &keep_off, unit.pos, look, &mut budget) {
                             Found::Way(legs) => rover.way = Some(Way { legs, planned: frame, fresh: true }),
                             Found::Untried if rover.way.is_some() => {}
                             Found::Untried => rover.way = None,
@@ -1358,7 +1376,7 @@ impl Lane {
                 let mut best = None;
                 for (_, _, g, look) in ranked {
                     let had = budget;
-                    match needle(ground.as_deref(), &danger, &keep_off, unit.pos, look, &mut budget) {
+                    match needle(ground.as_deref(), &way_danger, &keep_off, unit.pos, look, &mut budget) {
                         Found::Way(legs) => {
                             best = Some((g, look, legs));
                             break;
@@ -1885,6 +1903,32 @@ mod tests {
         let mut lane = roving_lane(&[10]);
         lane.tick(&host, &tick(30, vec![rover(10, 1000.0, 1000.0)], Vec::new()), &mut Vec::new(), false);
         assert_eq!(lane.roving(UnitId(10)).unwrap().goal.unwrap().0, "spot_3");
+    }
+
+    /// A bomber on the way is no tower on it: nothing keeps ahead of what flies half again as fast, so the place is
+    /// taken, the way is sent once, and it is not sent again as the bomber flies on along it (air-patrol-3-apex50,
+    /// 12:09: each tick's way was covered by the bomber's reach the next, planned again and sent again whole).
+    #[test]
+    fn a_bomber_over_the_way_neither_closes_it_nor_has_it_sent_again() {
+        let host = Host::new(vec![goal("spot_2", 3000.0, 1000.0, None, true), goal("spot_3", 1000.0, 3000.0, None, true)]);
+        let mut lane = roving_lane(&[10]);
+        let bomber = |x: f32| enemy(60, HAILSTORM, x, 1000.0);
+        let out = lane.tick(&host, &tick(30, vec![rover(10, 1000.0, 1000.0)], vec![bomber(2400.0)]), &mut Vec::new(), false);
+        assert_eq!(lane.roving(UnitId(10)).unwrap().goal.unwrap().0, "spot_2");
+        assert_eq!(moves_of(&out.commands, 10).len(), 1, "{:?}", out.commands);
+        // It flies west along the way, 25 a tick, until the rover's own evade would read it.
+        for k in 1..=8 {
+            let out = lane.tick(&host, &tick(30 + 3 * k, vec![rover(10, 1000.0 + 16.0 * k as f32, 1000.0)], vec![bomber(2400.0 - 25.0 * k as f32)]), &mut Vec::new(), false);
+            assert!(moves_of(&out.commands, 10).is_empty(), "tick {k}: {:?}", out.commands);
+        }
+    }
+
+    #[test]
+    fn a_way_stands_a_second_whatever_covers_it_and_five_at_most() {
+        assert!(way_stands(100, 100 + NEEDLE_HOLD_FRAMES - 1, || false), "just planned, a leg covered");
+        assert!(!way_stands(100, 100 + NEEDLE_HOLD_FRAMES, || false), "a second on, a leg covered");
+        assert!(way_stands(100, 100 + NEEDLE_HOLD_FRAMES, || true));
+        assert!(!way_stands(100, 100 + NEEDLE_REPLAN_FRAMES, || true), "stale");
     }
 
     #[test]

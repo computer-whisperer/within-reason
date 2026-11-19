@@ -21,6 +21,9 @@ pub(crate) const BANSHEE: UnitDefId = UnitDefId(6);
 
 pub(crate) const THISTLE: UnitDefId = UnitDefId(7);
 pub(crate) const NANO: UnitDefId = UnitDefId(8);
+/// A fighter and a tier-2 bomber, for the wing (`intercept.rs`).
+pub(crate) const FALCON: UnitDefId = UnitDefId(9);
+pub(crate) const HAILSTORM: UnitDefId = UnitDefId(10);
 
 pub(crate) fn at(x: f32, z: f32) -> Vec3 {
     Vec3 { x, y: 0.0, z }
@@ -110,6 +113,8 @@ impl Host {
             def(THISTLE, "corrl", 0.0, 1, 0.0, 0.0),
             // A construction turret: 200 build power over 220 of build distance, no build options.
             UnitDefInfo { build_distance: 220.0, ..def(NANO, "armnanotc", 0.0, 0, 200.0, 0.0) },
+            UnitDefInfo { move_class: None, ..def(FALCON, "armfig", 289.0, 1, 0.0, 0.0) },
+            UnitDefInfo { move_class: None, ..def(HAILSTORM, "corhurc", 248.0, 1, 0.0, 0.0) },
         ];
         Host { defs, buildings: Vec::new(), goals, terrain: None, odds: None }
     }
@@ -132,6 +137,9 @@ impl View for Host {
             EXTRACTOR => Stats { health: 300.0, aim: 13.0, top: 27.5, radius: 24.0, ..Stats::default() },
             CONSTRUCTOR => Stats { speed: 36.0, health: 760.0, ..Stats::default() },
             NANO => Stats { health: 400.0, ..Stats::default() },
+            // The game's: a missile of 125 on aircraft every 0.9 s out to 680.
+            FALCON => Stats { speed: 289.0, health: 167.0, sight: 430.0, air_reach: 680.0, air_dps: 139.0, ..Stats::default() },
+            HAILSTORM => Stats { reach: 300.0, dps: 500.0, speed: 248.0, health: 1520.0, sight: 400.0, ..Stats::default() },
             _ => return None,
         })
     }

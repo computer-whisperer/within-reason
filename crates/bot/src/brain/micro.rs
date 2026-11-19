@@ -2,14 +2,15 @@
 //! `docs/design/2026-09-25-formation-micro.md`). The lane runs on the session's fast thread (`session.rs`,
 //! `docs/design/2026-10-03-lane-off-the-brain-thread.md`); what the brain tells it goes with each tick's answer (the
 //! groups it declares, the view's fixed and changing parts, `LaneFixed` and `LaneScene`), and what the lane tells the
-//! brain comes with the next tick (`LaneReport`: hunts ended, rove events, the groups' states, the rovers' reports).
+//! brain comes with the next tick (`LaneReport`: hunts ended, rove events, the groups' states, the rovers' reports,
+//! the air patrols' scrambles and reports).
 
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use bot_protocol::{Tick, UnitDefId, UnitId, Vec3};
 use combatsim::sim::Rules;
-pub use micro::{GroupState, RoveReport, Stats};
+pub use micro::{GroupState, InterceptReport, RoveReport, Stats};
 
 use crate::session::{Declared, LaneFixed, LaneReport, LaneScene};
 
@@ -40,8 +41,9 @@ impl Brain {
     /// ground group holding, walking, advancing, attacking, following or shelling as a formation of kind Hold, Go,
     /// FightTo or Attack (the migration design, chunks 2-5: `Group::declared`; its order carries the company cap and
     /// the muster points: the companies design §4); a declared group's members are under no reflex
-    /// (`docs/design/2026-10-28-contact-cleanup.md` §5). An air group is nothing to the lane but a rove (its aircraft
-    /// are no lane soldiers otherwise). The fast thread sets these on the lane and clears every group not among them.
+    /// (`docs/design/2026-10-28-contact-cleanup.md` §5). An air group is nothing to the lane but a rove or an air
+    /// patrol (its aircraft are no lane soldiers otherwise). The fast thread sets these on the lane and clears every
+    /// group not among them.
     pub(super) fn declare_groups(&self) -> Vec<Declared> {
         let mut declared: Vec<Declared> = Vec::new();
         let Some(pianist) = &self.pianist else { return declared };
@@ -53,6 +55,11 @@ impl Brain {
                     let within = within.as_ref().and_then(|name| self.region_of(name));
                     let heal = self.heal_of(&name);
                     declared.push((name, group.members.clone(), micro::GroupOrder::new(micro::GroupKind::Rove { within }, Vec::new()).with_heal(heal)));
+                }
+                // An air patrol is the lane's wing (H-MICRO-INTERCEPT): its fighters circle the place and fly at what
+                // comes at it; the lane takes the fighters of the members and nothing else.
+                super::pianist::GroupTask::AirPatrol { at, .. } => {
+                    declared.push((name, group.members.clone(), micro::GroupOrder::new(micro::GroupKind::Intercept { place: *at }, Vec::new())));
                 }
                 // A formation (chunks 2 and 3): the hold about its point, the walk or the advance to its place, the
                 // attack on a party (its named unit, or the fight to its centre as the sightings move it); the lane
@@ -139,14 +146,15 @@ impl Brain {
     }
 
     /// The lane's word of the previous tick: its firings for the per-minute line (the record counts them on the
-    /// fast thread), the groups' states and the rovers' reports for the picture, the hunts' ends (`groups.rs`
-    /// `hunt_event`) and the rovers' events.
+    /// fast thread), the groups' states, the rovers' and the air patrols' reports for the picture, the hunts' ends
+    /// (`groups.rs` `hunt_event`), the rovers' events and the patrols'.
     pub(super) fn take_lane_report(&mut self, report: LaneReport, tick: &Tick) {
         for rule in report.fired {
             *self.fired.entry(rule).or_default() += 1;
         }
         self.lane_groups = report.groups;
         self.lane_roving = report.roving;
+        self.lane_wings = report.wings;
         if !report.hunts.is_empty()
             && let Some(pianist) = self.pianist.as_mut()
         {
@@ -190,6 +198,9 @@ impl Brain {
         }
         if !report.rove.is_empty() {
             self.rove_events(&report.rove, tick.frame);
+        }
+        if !report.intercepts.is_empty() {
+            self.air_patrol_events(&report.intercepts, tick.frame);
         }
     }
 
@@ -258,6 +269,13 @@ impl Brain {
     /// the ground (a gunship, a bomber), not a fighter, a stun drone or a scout, which would kill nothing.
     pub(super) fn can_rove(&self, def: UnitDefId) -> bool {
         self.world.domain_of(def) != Domain::Air || self.sim_stats(def).is_some_and(|(_, dps, _)| dps > 0.0)
+    }
+
+    /// Whether a type is a fighter (H-MICRO-INTERCEPT): an aircraft whose weapons hit what flies harder than the
+    /// ground, the lane's own test (`micro::intercept::fighter`), so an air patrol is offered to the groups whose
+    /// every aircraft the lane would fly.
+    pub(super) fn is_fighter(&self, def: UnitDefId) -> bool {
+        self.world.domain_of(def) == Domain::Air && self.stats_of(def).is_some_and(|s| micro::intercept::fighter(&s))
     }
 
     /// Whether a type's weapons only stun (a Shuriken, a Stiletto): it kills nothing, and the stun is what it is for.

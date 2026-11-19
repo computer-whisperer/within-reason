@@ -3,6 +3,15 @@
 //! the stream outgrew their links (K-engine-a-far-client-falls-behind-when-the-stream-outgrows-its-link). Only a move
 //! that replaces the unit's orders is ever held: it waits, one per unit, the newest replacing an older, and goes out
 //! as the bucket refills, the largest change first. Every other order goes out when given.
+//!
+//! Two rules from the flagship's game against Apex of 2026-11-18 (`air-patrol-3-apex50`, 12:09: two Rovers sent a
+//! route of thirty queued legs again every fifth of a second, 2,067 orders in eight seconds, none of them held; the
+//! bucket stood some 1,300 in debt and three fighters' moves to meet a bomber waited seven seconds and never went
+//! out). **The bucket owes no more than it holds** (`depth`): what goes out past that is counted (`past`) and not
+//! owed, so the moves that wait behind a flood wait a second for it, not until it is paid. **A first class**
+//! (`Command::MoveNow`): a move that is a decision goes out the frame it is given, charged to the bucket like any
+//! order, within a share of its own (`FIRST_RATE` a second, `FIRST_DEPTH_S` seconds of it at once); past the share
+//! it is a move like any other.
 
 use std::collections::HashMap;
 
@@ -12,8 +21,13 @@ use bot_protocol::{Command, UnitId, Vec3};
 /// (`1794293029-human`: 3.1-3.7 KB/s each late on, about 100 messages a second), the user's standard ("go with the
 /// Apex average and moves only", 2026-11-10). Eight AI seats at this rate are the far clients' ceiling.
 pub const RATE: f32 = 100.0;
-/// The bucket holds this many seconds of the rate: a fresh order to a group of a hundred goes out at once.
+/// The bucket holds this many seconds of the rate: a fresh order to a group of a hundred goes out at once. It owes
+/// as much at most.
 const DEPTH_S: f32 = 1.0;
+/// The first class's share of the rate, and how many seconds of it may go at once: forty fighters leaving their
+/// loop in one frame, twenty decisions a second after.
+pub const FIRST_RATE: f32 = 20.0;
+const FIRST_DEPTH_S: f32 = 2.0;
 const FRAMES_PER_SECOND: f32 = 30.0;
 
 /// What an order does to a move of the same unit's that is waiting.
@@ -34,13 +48,15 @@ fn effect(command: &Command) -> Option<(UnitId, Effect)> {
         Command::Move { unit, queue, .. }
         | Command::Build { unit, queue, .. }
         | Command::Fight { unit, queue, .. }
+        | Command::Patrol { unit, queue, .. }
         | Command::FightReclaimingEnemies { unit, queue, .. }
         | Command::ReclaimFeature { unit, queue, .. }
         | Command::ReclaimUnit { unit, queue, .. }
         | Command::Resurrect { unit, queue, .. }
         | Command::Repair { unit, queue, .. }
         | Command::Attack { unit, queue, .. } => (unit, queued(queue)),
-        Command::Tend { unit, .. }
+        Command::MoveNow { unit, .. }
+        | Command::Tend { unit, .. }
         | Command::Stop { unit }
         | Command::Guard { unit, .. }
         | Command::SelfDestruct { unit }
@@ -75,6 +91,11 @@ pub struct Minute {
     pub dropped: u32,
     /// The longest wait of a move sent, in frames.
     pub longest: i32,
+    /// First-class moves sent at once, and those that came past the class's share and were offered as plain moves.
+    pub first: u32,
+    pub first_late: u32,
+    /// Orders that went out with the bucket owing all it may: sent past the budget, and not owed.
+    pub past: u32,
 }
 
 pub struct Budget {
@@ -82,6 +103,10 @@ pub struct Budget {
     per_frame: f32,
     depth: f32,
     tokens: f32,
+    /// The first class's own bucket.
+    first_per_frame: f32,
+    first_depth: f32,
+    first_tokens: f32,
     frame: i32,
     waiting: HashMap<UnitId, Waiting>,
     /// Where each unit's last move sent was going: a waiting move's weight is its distance from it.
@@ -94,7 +119,21 @@ impl Budget {
     pub fn new(rate: f32) -> Budget {
         let per_frame = rate.max(0.0) / FRAMES_PER_SECOND;
         let depth = rate.max(0.0) * DEPTH_S;
-        Budget { per_frame, depth, tokens: depth, frame: 0, waiting: HashMap::new(), last_move: HashMap::new(), minute: Minute::default() }
+        // The class's share is of the rate: a seat held to less has less of it.
+        let first = FIRST_RATE.min(rate.max(0.0));
+        let first_depth = first * FIRST_DEPTH_S;
+        Budget {
+            per_frame,
+            depth,
+            tokens: depth,
+            first_per_frame: first / FRAMES_PER_SECOND,
+            first_depth,
+            first_tokens: first_depth,
+            frame: 0,
+            waiting: HashMap::new(),
+            last_move: HashMap::new(),
+            minute: Minute::default(),
+        }
     }
 
     /// `WITHIN_REASON_ORDER_CAP`, orders a second (0 turns the budget off), else `RATE`.
@@ -108,18 +147,39 @@ impl Budget {
 
     fn refill(&mut self, frame: i32) {
         if frame > self.frame {
-            self.tokens = (self.tokens + self.per_frame * (frame - self.frame) as f32).min(self.depth);
+            let frames = (frame - self.frame) as f32;
+            self.tokens = (self.tokens + self.per_frame * frames).min(self.depth);
+            self.first_tokens = (self.first_tokens + self.first_per_frame * frames).min(self.first_depth);
             self.frame = frame;
         }
     }
 
     /// An order given at `frame`: what goes out now is pushed onto `out`, in the order it is to go.
     pub fn offer(&mut self, frame: i32, command: Command, out: &mut Vec<Command>) {
+        // To the engine a first-class move is a move.
+        let (command, first) = match command {
+            Command::MoveNow { unit, to } => (Command::Move { unit, to, queue: false }, true),
+            command => (command, false),
+        };
         if !self.on() {
             out.push(command);
             return;
         }
         self.refill(frame);
+        if first {
+            if self.first_tokens >= 1.0 {
+                // Now, whatever waits and whatever the bucket owes; the unit's waiting move is the older decision.
+                let Command::Move { unit, .. } = command else { unreachable!("made a move above") };
+                self.first_tokens -= 1.0;
+                self.minute.first += 1;
+                if self.waiting.remove(&unit).is_some() {
+                    self.minute.replaced += 1;
+                }
+                self.emit(command, out);
+                return;
+            }
+            self.minute.first_late += 1;
+        }
         let Some((unit, effect)) = effect(&command) else {
             out.push(command);
             return;
@@ -154,7 +214,12 @@ impl Budget {
     }
 
     fn emit(&mut self, command: Command, out: &mut Vec<Command>) {
-        self.tokens -= 1.0;
+        // The bucket owes no more than it holds: an order past that is counted, not owed.
+        if self.tokens - 1.0 < -self.depth {
+            self.minute.past += 1;
+        } else {
+            self.tokens -= 1.0;
+        }
         self.minute.sent += 1;
         if let Command::Move { unit, to, queue } = command {
             self.minute.moves += 1;
@@ -219,6 +284,95 @@ mod tests {
 
     fn units_of(out: &[Command]) -> Vec<i32> {
         out.iter().filter_map(|c| effect(c).map(|(u, _)| u.0)).collect()
+    }
+
+    fn now(unit: i32, x: f32) -> Command {
+        Command::MoveNow { unit: UnitId(unit), to: at(x) }
+    }
+
+    /// A route of queued legs sent again and again: none of it is held, and the bucket ends owing what it holds, no
+    /// more. The move that waits behind it goes out when a second has paid that, not when the flood is paid
+    /// (air-patrol-3-apex50: 2,067 queued moves in eight seconds, and a move that waited 20.7 s).
+    #[test]
+    fn the_bucket_owes_no_more_than_it_holds() {
+        let mut b = Budget::new(RATE);
+        let mut out = Vec::new();
+        for leg in 0..2000 {
+            b.offer(0, Command::Move { unit: UnitId(1), to: at(leg as f32), queue: true }, &mut out);
+        }
+        assert_eq!(out.len(), 2000, "queued legs are never held");
+        out.clear();
+        b.offer(1, mv(2, 500.0), &mut out);
+        assert!(out.is_empty(), "the bucket owes: the move waits");
+        let mut went = None;
+        for frame in 2..=90 {
+            b.release(frame, &mut out);
+            if went.is_none() && !out.is_empty() {
+                went = Some(frame);
+            }
+        }
+        // A hundred owed and one to spend at 100 a second: a second, give or take the frame.
+        assert!(went.is_some_and(|f| (30..=33).contains(&f)), "{went:?}");
+        let (minute, _) = b.take_minute();
+        assert_eq!(minute.past, 2000 - 200, "all but the bucket and what it may owe went out past the budget");
+    }
+
+    /// A first-class move goes out the frame it is given, as a move, through a flood and ahead of what waits; the
+    /// unit's own waiting move is the older decision and never goes out.
+    #[test]
+    fn a_first_class_move_goes_out_at_once_whatever_the_bucket_owes() {
+        let mut b = Budget::new(RATE);
+        let mut out = Vec::new();
+        for leg in 0..2000 {
+            b.offer(0, Command::Move { unit: UnitId(1), to: at(leg as f32), queue: true }, &mut out);
+        }
+        out.clear();
+        b.offer(1, mv(7, 300.0), &mut out);
+        b.offer(1, mv(8, 300.0), &mut out);
+        assert!(out.is_empty());
+        b.offer(1, now(7, 900.0), &mut out);
+        assert!(matches!(out[..], [Command::Move { unit: UnitId(7), to, queue: false }] if to.x == 900.0), "{out:?}");
+        out.clear();
+        for frame in 2..=120 {
+            b.release(frame, &mut out);
+        }
+        assert_eq!(units_of(&out), vec![8], "unit 7's waiting move went with the newer decision");
+        let (minute, _) = b.take_minute();
+        assert_eq!((minute.first, minute.first_late), (1, 0));
+    }
+
+    /// The class has a share of its own: two seconds of it at once, then its rate. What comes past it is offered as
+    /// a plain move and waits its turn, so a lane that sent every move first-class would flood nothing.
+    #[test]
+    fn past_its_share_a_first_class_move_is_a_move_like_any_other() {
+        let mut b = Budget::new(RATE);
+        let mut out = Vec::new();
+        for leg in 0..2000 {
+            b.offer(0, Command::Move { unit: UnitId(1), to: at(leg as f32), queue: true }, &mut out);
+        }
+        out.clear();
+        let burst = (FIRST_RATE * FIRST_DEPTH_S) as i32;
+        for u in 0..burst + 10 {
+            b.offer(1, now(100 + u, 500.0), &mut out);
+        }
+        assert_eq!(out.len(), burst as usize, "the share, and no more");
+        let (minute, waiting) = b.take_minute();
+        assert_eq!((minute.first, minute.first_late, waiting), (burst as u32, 10, 10));
+        // A second on the class has its rate again.
+        out.clear();
+        for u in 0..30 {
+            b.offer(31, now(200 + u, 500.0), &mut out);
+        }
+        assert_eq!(out.len(), FIRST_RATE as usize);
+    }
+
+    /// With the budget off a first-class move is a move.
+    #[test]
+    fn a_first_class_move_is_a_move_to_the_engine() {
+        let mut b = Budget::new(0.0);
+        let mut out = Vec::new();
+        b.offer(0, now(3, 40.0), &mut out);
+        assert!(matches!(out[..], [Command::Move { unit: UnitId(3), queue: false, .. }]), "{out:?}");
     }
 
     /// Off: everything goes out as given.

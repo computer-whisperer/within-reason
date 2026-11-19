@@ -266,8 +266,8 @@ impl Engine {
         self.metal_spots = metal_spots.clone();
         let map = MapInfo {
             name: self.string(call!(self, Map_getName())),
-            width: call!(self, Map_getWidth()) as f32 * SQUARE_SIZE,
-            height: call!(self, Map_getHeight()) as f32 * SQUARE_SIZE,
+            width: self.map_size().0,
+            height: self.map_size().1,
             wind_min: call!(self, Map_getMinWind()),
             wind_max: call!(self, Map_getMaxWind()),
             tidal: call!(self, Map_getTidalStrength()),
@@ -1047,6 +1047,11 @@ impl Engine {
         call!(self, Map_getElevationAt(x, z))
     }
 
+    /// The map's width and height in elmos.
+    pub fn map_size(&self) -> (f32, f32) {
+        (call!(self, Map_getWidth()) as f32 * SQUARE_SIZE, call!(self, Map_getHeight()) as f32 * SQUARE_SIZE)
+    }
+
     fn on_the_ground(&self, at: Vec3) -> [f32; 3] {
         [at.x, call!(self, Map_getElevationAt(at.x, at.z)), at.z]
     }
@@ -1077,6 +1082,9 @@ const CANCEL_TARGET_COMMAND: c_int = 34924;
                     facing: site.as_ref().and_then(|s| s.facing()).unwrap_or(sys::UNIT_COMMAND_BUILD_NO_FACING),
                 })
             }
+            // A first-class move is the budget's to tell from a move (`budget::Budget::offer` makes it one); one that
+            // comes here as it was given is a move that replaces the unit's orders.
+            Command::MoveNow { unit, to } => self.issue(&Command::Move { unit, to, queue: false }),
             Command::Move { unit, to, queue } => {
                 let mut pos = self.on_the_ground(to);
                 self.handle(sys::COMMAND_UNIT_MOVE, &mut sys::SMoveUnitCommand {
@@ -1090,6 +1098,16 @@ const CANCEL_TARGET_COMMAND: c_int = 34924;
             Command::Fight { unit, to, queue } => {
                 let mut pos = self.on_the_ground(to);
                 self.handle(sys::COMMAND_UNIT_FIGHT, &mut sys::SFightUnitCommand {
+                    unitId: unit.0,
+                    groupId: NO_GROUP,
+                    options: options(queue),
+                    timeOut: NO_TIMEOUT,
+                    toPos_posF3: pos.as_mut_ptr(),
+                })
+            }
+            Command::Patrol { unit, to, queue } => {
+                let mut pos = self.on_the_ground(to);
+                self.handle(sys::COMMAND_UNIT_PATROL, &mut sys::SPatrolUnitCommand {
                     unitId: unit.0,
                     groupId: NO_GROUP,
                     options: options(queue),

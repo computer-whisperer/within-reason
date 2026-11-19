@@ -266,6 +266,8 @@ pub struct Pianist {
     pub(super) hunts_failed: Vec<(String, i32, String)>,
     /// The rovers' events since the last pass line (`groups.rs` `rove_events`), for the log.
     pub(super) rove_events: Vec<String>,
+    /// The air patrols' since the last pass line (`groups.rs` `air_patrol_events`), for the log.
+    pub(super) patrol_events: Vec<String>,
     /// Spots where the engine refused an extractor, and until when they are left off (H-HANDS-REFUSED).
     pub(super) refused_spots: HashMap<usize, i32>,
     /// Sites the engine refused for a building (the type, the point, until when): kept out of that type's site
@@ -799,6 +801,7 @@ impl Pianist {
             hunt_events: Vec::new(),
             hunts_failed: Vec::new(),
             rove_events: Vec::new(),
+            patrol_events: Vec::new(),
             refused_spots: HashMap::new(),
             refused_sites: Vec::new(),
             at_site: HashMap::new(),
@@ -1256,6 +1259,9 @@ impl Brain {
             if !pianist.rove_events.is_empty() {
                 line["rove"] = json!(std::mem::take(&mut pianist.rove_events));
             }
+            if !pianist.patrol_events.is_empty() {
+                line["air_patrol"] = json!(std::mem::take(&mut pianist.patrol_events));
+            }
         }
         // The economy at its extremes only: the stock words' five buckets flapped at their edges (onepass-medium-3:
         // 58 of 663 asks); and whether the store now covers the cheapest unit an idle factory could make: the store
@@ -1357,7 +1363,7 @@ impl Brain {
         let pianist = self.pianist.as_mut().expect("pianist mode");
         if asked_whole == 0 || !jev {
             line["played"] = json!(std::mem::take(&mut pianist.played));
-            if !line["played"].as_array().is_some_and(Vec::is_empty) || line.get("hunts").is_some() || line.get("rove").is_some() {
+            if !line["played"].as_array().is_some_and(Vec::is_empty) || line.get("hunts").is_some() || line.get("rove").is_some() || line.get("air_patrol").is_some() {
                 pianist.write_log(line);
             }
             return;
@@ -1792,6 +1798,7 @@ impl Brain {
                     GroupTask::Hunt(h) => json!({ "kind": "hunt", "party": h.party, "quarry": h.quarry.0, "to": [h.at.x as i32, h.at.z as i32] }),
                     GroupTask::Follow { name, at, .. } => json!({ "kind": "follow", "ward": name, "to": [at.x as i32, at.z as i32] }),
                     GroupTask::Rove { within, .. } => json!({ "kind": "rove", "within": within }),
+                    GroupTask::AirPatrol { at, place } => json!({ "kind": "air_patrol", "place": place, "to": [at.x as i32, at.z as i32] }),
                 };
                 json!({ "name": g.name, "members": g.members.iter().map(|id| id.0).collect::<Vec<_>>(), "at": centre.map(|c| [c.x as i32, c.z as i32]), "task": task })
             })

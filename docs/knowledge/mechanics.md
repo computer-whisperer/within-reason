@@ -1315,3 +1315,212 @@ tried in a game.
 **Would be wrong if.** A game with default options answers the gadget's command.
 **Used by.** K-group-a-faster-type-costs-an-order-a-cell.
 
+
+### K-engine-a-fighter-sent-at-a-plane-flying-at-it-passes-it-and-is-left-behind
+**Claim.** A fighter ordered to attack an aircraft that is flying toward it meets it nose to nose. The two close at
+their speeds together (a Falcon's 289 and a loaded Hailstorm's 200 to 250: about 500 a second), so the fighter has
+it in its missile's reach (680) for a second and a half and fires two or three times. Inside BAR's
+`attacksafetydistance` (300) the engine drops the attack run and flies the plane level; with its target behind it the
+plane's yaw and roll stay locked until the target is its turn radius away (`turnRadius x speed`, 617 for a Falcon at
+speed), so it flies straight on for a second or more; then it turns, three to four seconds, and comes out 1,100 to
+1,400 behind a bomber it gains 40 to 80 a second on. It does not fire again before the bombs unless the bombers slow
+or turn. The same lock holds a fighter that is ahead of its target and flying its way: it flies straight on, ahead of
+it, until the target is 617 behind.
+**Status.** supported from source and on the bench (2026-11-16/17).
+**Evidence.** Recoil 2026.07.04 `rts/Sim/MoveTypes/StrafeAirMoveType.cpp`: `Update` (`goalInFront && goalInRange` or
+`UpdateFlying`), `UpdateAttack` (`goalDist < attackSafetyDistance`), `UpdateFlying` (`allowUnlockYawRoll = goalDist2D
+>= TurnRadius(turnRadius, spd.w) || goalVec.dot(frontdir) > 0`); BAR `units/ArmAircraft/armfig.lua` (`turnradius =
+64`, `attacksafetydistance = 300`, the missile's `range = 680`, `reloadtime = 0.9`). The drills: air-E-run1-w2-f12-pspread
+(a Falcon's track: one hit at the merge 2,300 from the block, 749 behind a second later, turning from there, 1,300 to
+1,400 behind at the end of the turn and 1,111 when the bombs fell eight seconds after), air-A-run2-f12-pspread (69 %
+of the wing's seconds from the merge to the bombs more than 550 behind the rearmost bomber; `run/air_drill.py
+--places`), air-I11-run2-rF-f12 (three Falcons 60 to 420 ahead of the bombers, flying their way, for ten seconds).
+**Would be wrong if.** A fighter given an attack on an approaching bomber from 3,000 out were within 550 behind it
+three seconds after passing it.
+**Used by.** [[H-MICRO-INTERCEPT]].
+
+### K-engine-a-fighter-behind-its-target-is-held-there-and-fires-every-reload
+**Claim.** A fighter attacking an aircraft that is in front of it and in reach is throttled by the engine: its thrust
+is the range over its reach plus one less 0.7 times the cosine of the target's angle off its nose, at most one. Behind
+a bomber it therefore slows to the bomber's speed about 300 to 350 behind it and stays, and it fires every reload: in
+that place (behind the rearmost bomber by no more than 550 and within 300 across) a Falcon lands 0.5 to 0.85 hits a
+second, against 0.0 to 0.2 further behind, beside or ahead. A missile on a target flying away reaches less far than
+its range: a Falcon's flies 1.2 s (about 820 elmos from a start of 450 a second), and a bomber at 230 has gone 280 by
+then, so about 550.
+**Status.** supported from source and on the bench (2026-11-17).
+**Evidence.** `StrafeAirMoveType.cpp` `UpdateAttack` (`thrustLim = min(1, goalDist / maxRange + 1 - goalDotFront *
+0.7)` for an air target); `armfig.lua` (`flighttime = 1.2`, `startvelocity = 450`, `weaponacceleration = 400`,
+`weaponvelocity = 850`). The drills: air-I2-run2-f12 (a Falcon 306 to 355 behind for four seconds at 171 to 235 a
+second, the wing 10 to 12 hits a second by 6 to 8 of its 12); the hit rates by place in air-I6-\* to air-K-\*
+(`run/air_drill.py --places`).
+**Would be wrong if.** A Falcon attacking a Hailstorm from 300 behind passed it, or landed fewer than one hit in
+three seconds there.
+**Used by.** [[H-MICRO-INTERCEPT]].
+
+### K-engine-a-fighters-turn-costs-four-seconds-of-the-bombers-flight
+**Claim.** A Falcon or a Highwind told to fly to a point behind it does nothing for 0.7 s (it banks), then comes round
+at 60 to 90 degrees a second, 350 to 620 elmos across, and leaves the turn at 140 to 200 a second, taking about three
+seconds to have its speed again. Against bombers at 200 to 250 the half turn therefore costs what they fly in four
+seconds, not in the three it takes to come round. To a point dead astern the engine turns a plane either way; a point
+abeam decides the side.
+**Status.** measured on the bench (2026-11-17), Falcons; Highwinds read from two tracks only.
+**Evidence.** The lane's debug lines in air-I5-run2-rF-f12 (heading 161 to 147 degrees off in the first 0.7 s, 147 to 62
+in the next 1.5) and the tracks of air-I8-run2-f12 (speed 138 at the turn's middle, 162, 218, 243 in the seconds after;
+the trail growing from 461 to 613 meanwhile); air-I7-run1-rF-f12 (turns away from the track ending 600 to 800 across).
+**Would be wrong if.** A Falcon's trail on a bomber did not grow in the two seconds after its turn.
+**Used by.** [[H-MICRO-INTERCEPT]] (`TURN_SECONDS`, `TURN_ACROSS`, `ROLL_IN`, the point abeam).
+
+### K-snapshot-a-radar-contact-carries-its-height-and-its-velocity
+**Claim.** An enemy unit on radar alone, its type unknown, is in the snapshot with its place in three dimensions and
+its velocity: a bomber 3,200 from anything of ours read as 230 a second and 349 over the ground. What flies can be
+told from that before its type is seen.
+**Status.** observed on the bench (2026-11-17): the wing's scramble line in air-I0-run2-f12 and every later drill.
+**Evidence.** `crates/micro/src/intercept.rs` `flies`; the debug line "scrambles 12 fighters at 1 flying contacts 3224
+out (the first body: 1 at 230 a second, 349 over the ground)".
+**Would be wrong if.** A contact under a jammer or at the radar's edge came with no velocity. Not tried: the radar's
+wobble on a contact's place, and what a jammed aircraft shows.
+**Used by.** [[H-MICRO-INTERCEPT]].
+
+### K-engine-a-fighter-on-a-patrol-order-chases-what-it-sees
+**Claim.** A fighter on the engine's patrol order with its move state at manoeuvre attacks aircraft of his that come
+near the fighter itself, wherever the fighter is, and follows them for as long as they stay near: the patrol's
+corners have no part in it. Given to a fighter far from its corners with his aircraft beside it, the order is a
+chase to wherever they fly. The same fighter on a move order with its move state at hold position flies to the
+point and attacks nothing on the way, and a patrol flown on hold position stays on its corners.
+**Status.** observed in a game and on the bench (2026-11-17/18). The reach of the engine's own search (about 1,000
+round the fighter by the game's distances) is not read from the source.
+**Evidence.** air-patrol-1 14:27 to 14:44 (`run/matches/1794975308-air-patrol-1`): the wing was put "back on its
+loop" 4,000 from its place with his Falcons 900 away, by a patrol order under manoeuvre; it followed them to his
+air station, 5,700 to 6,500 from the place, and lost 10 of its 14. The bench's `out` scene (eleven Valiants out to
+3,000 from the place and called back to a station 5,900 out): under that return the furthest fighter got 4,829 from
+the place on average and 6,287 at most, and 2,409 out when the duel ended (air-L0-out, three duels); with the return
+as a move order on hold position 3,135 and 3,796, and 768 at the end, every fighter on its loop (air-L1-out).
+**Would be wrong if.** A fighter given a patrol order under manoeuvre 4,000 from its corners, with fighters of his
+within 900 of it flying away, flew to the corners.
+**Used by.** [[H-MICRO-INTERCEPT]] (the return is a move order on hold position, and the loop is flown on hold
+position).
+
+### K-engine-a-unit-given-thirty-orders-at-once-flies-none
+**Claim.** An aircraft given 32 move orders in one tick (the first not queued, the rest queued behind it) flew none
+of them: it was within 50 of where it began for the whole duel (72 s). Given eight at once, and four more as each
+lap was half flown, it flew them all.
+**Status.** observed once on the bench (2026-11-18), one Whirlwind under the duel director's script rows. Not read:
+whether the engine's queue or the sender drops them, and where between 8 and 32 the limit lies.
+**Evidence.** `run/matches/1794979056-duel-air-L0-mill` (the bomber at 5694,1516 from the 36th second to the 72nd)
+against `1794979214-duel-air-L0-mill` (the same scene with the laps given two at first and one at a time after: at
+5350,2485 at 55 s and 5740,2546 at 110 s); `run/air_raid.py` `%R`.
+**Would be wrong if.** A unit given 32 queued moves at once flew the first of them.
+**Used by.** `run/air_raid.py` (a lap's orders go out as the lap before it ends). Checked 2026-11-18: the rove
+queues that many on one unit (a way of 31 to 42 legs to a Rover at once, air-patrol-3-apex50 from 12:08.28), and
+the Rover drove (4816,4195 to 4478,4660 in four seconds under ways sent again), so the claim is the aircraft's on
+the bench and no rule of the engine's for every unit.
+
+### K-host-an-unheld-flood-puts-every-held-move-behind-its-debt
+**Claim.** With the order budget as first built (only a move that replaces a unit's orders is held, every other order
+goes out and takes one from the bucket, the bucket with no floor), a burst of orders that are not held starved the
+held ones for as long as the burst took to pay: 2,067 queued moves to two Rovers in eight seconds left the bucket
+some 1,300 in debt, and three fighters' moves issued twelve to fourteen times each by the bot in the next seven
+seconds never reached the engine (the longest wait of that minute 20.7 s).
+**Status.** observed once in a game (2026-11-18); mended the same day (the bucket owes no more than it holds, and a
+first class of moves goes out at once: H-HOST-ORDER-BUDGET), the mend unit-tested. A game on it (air-patrol-4-apex50) had no burst and no held move, so it showed nothing of the mend either way.
+**Evidence.** `run/matches/1795017370-air-patrol-3-apex50` in the worktree `within-reason.air-intercept`: the match
+record's `cmd` rows for units 1590, 1647 and 18716 from 12:09.27 (moves to points 2,400 from home) against the
+tape's `cmd` rows for them (a move state at 12:09.28, an attack at 12:17.10, no move); the tape's `cmd` rows for
+units 11574 and 13919 (a batch of one move and 30 to 41 queued moves every six to nine frames from 12:08.28); the
+host's line `orders f=23400 minute: sent 3062 (moves 2801), held 102, replaced 262, dropped 13, ... longest wait
+20.7 s` in `00/engine.log`. The seat's seconds over the game: median 27 orders, ninetieth percentile 62, 45 of
+2,263 over 100, the only ones over 200 at 12:09 to 12:12 and 12:16 to 12:17.
+**Would be wrong if.** A held move had gone out within a second or two of a burst that size under the first budget.
+**Used by.** H-HOST-ORDER-BUDGET (the debt's limit, the first class).
+
+### K-rove-a-way-round-a-shooter-faster-than-the-rover-does-not-stand-a-tick
+**Claim.** The rove plans a way round every shooter's reach and plans it again when a shooter comes to cover a leg. A
+shooter faster than the rover that crosses the map (a Stormbringer at 250 a second over Rovers at 168) covers a leg
+of each new way within a tick or two, so the way was planned again and sent again whole every six to nine frames
+for as long as the bomber flew: 31 to 42 queued legs a time.
+**Status.** observed once in a game (2026-11-18), the cause read from the code and the game's rove log ("ran from
+his Stormbringer", "gave up looking at spot_49: its way passes the reach of something that can shoot it" at 12:09)
+and not reproduced on the bench; mended the same day (a way is planned round the shooters the rover can keep ahead
+of, and stands a second: H-MICRO-ROVE), the mend unit-tested. In the next game (air-patrol-4-apex50) his bombers or gunships were within 900 of a scout's way as it was sent 11 times and no way came in bursts (10 sent again inside six frames in the game, 137 in the game of the fault).
+**Evidence.** As the entry above: unit 11574's batches (the same end 5144,760 in every one, 31 to 42 legs, the head
+leg and the count changing from one to the next), the bomber's flight 12:07 to 12:22
+(`docs/design/2026-11-16-air-intercept.md` 8.5).
+**Would be wrong if.** With no shooter faster than the rover in sight a rover were sent its way whole more than once
+in a few seconds; or with the mend in, a bomber overhead still had the way sent again.
+**Used by.** H-MICRO-ROVE (`way_danger`, `NEEDLE_HOLD_FRAMES`).
+
+### K-micro-the-wings-turn-in-is-a-correction-flown-tick-by-tick
+**Claim.** The wing's turn-in rule (hold the course while a turn begun now would bring the fighter out nearer than
+100 behind the bombers or ahead of them, for three seconds at most, else come round; its move a point beside the
+fighter, sent again when that point has shifted 240) changes its mind from tick to tick while the estimate stands
+at the threshold, and that is the rule working. A variant that decided the turn-in once (hold, then turn, never
+back) and sent the turn's moves by bearing rolled the fighters out ahead of the bombers on a long head-on approach.
+Which of its two changes did it was not separated.
+**Status.** measured on the bench (2026-11-18), eight repetitions a cell.
+**Evidence.** The share of the fighter-seconds from the merge to the bombs spent ahead of the rearmost bomber and
+flying its way: the northern raid 25 % with the variant against 0 % with the rule, the line abreast 32 % against
+0 % (`air-S1-north`, `air-S1-line` against `air-G3-north`, `air-G3-line`, `run/air_drill.py --places`); fighters
+lost 0.9 a duel against none on both; hits a fighter-second on the northern raid 0.46 against 0.59. On the two
+recorded runs, where the merge comes seven seconds after contact, the shares did not differ (2 to 3 % ahead both).
+Neither change saved orders: the turn's moves by bearing were twice as many as by the point's shift (5.0 a fighter
+"coming round" against 2.4, `air-D1-run2` against `air-D0-run2`: the point is beside the fighter and moves with
+it), and deciding the turn once left the count where it was (12.2 and 19.1 moves a fighter a duel against 13.0 and
+18.2, `air-D2-*` against `air-D1-*`).
+**Would be wrong if.** A wing whose turn-in was decided once, its moves sent as the rule sends them, kept the
+fighters behind the bombers on the northern raid as often as the rule does and sent fewer moves.
+**Used by.** H-MICRO-INTERCEPT (the turn is left as it was; a design that wants fewer orders in the turn has to
+keep the correction).
+
+### K-micro-a-closing-fighter-flies-as-well-on-a-heading-a-second-as-on-a-point-five-times-a-second
+**Claim.** On the way out to its turn-in point a fighter needs its move again only when the bearing to the point
+has changed by ten degrees, and no more often than once a second. Sent again whenever the point had shifted 120 (no
+sooner than a fifth of a second after the last), it was sent eight to fourteen moves in the three to five seconds
+of a close on the two recorded runs and flew no better.
+**Status.** measured on the bench (2026-11-18), forty repetitions a cell on the two recorded runs.
+**Evidence.** Twelve Falcons, the two recorded runs, one build with the rule switched by the environment: the
+close's move by the point's shift (`air-B0-*`, `air-B0b-run1`) kept run 1 38 of 40 and run 2 15 of 16 on 244 and
+140 first-class moves a duel (20 and 12 a fighter; both hosts' lines summed, the wing sitting on either); by
+bearing, ten degrees and a second (`air-B2-*`, `air-B2b-*`), run 1 37 of 40 and run 2 39 of 40 on 123 and 85 (10
+and 7 a fighter); six degrees and half a second (`air-B1-*`, `air-B1b-run1`) run 1 35 of 40 and run 2 14 of 16 on
+150 and 98. The fighter-seconds from the merge to the bombs: in firing position 52 to
+62 % in every arm, ahead of the bombers 0 to 4 %, hits a fighter-second 0.40 to 0.42 on run 1 and 0.50 to 0.56 on
+run 2. Where the moves went (`WITHIN_REASON_MICRO_DEBUG`, `air-D0-*`, four duels a run): by the point's shift 7.9
+and 14.1 a fighter in the close and 4.6 and 5.6 in the turn. The turn's moves sent by bearing instead were twice as
+many (`air-D1-*`: the turn's point is beside the fighter and moves with it), so the turn keeps the point's shift.
+On the line abreast, the longest approach, the rule made no difference either: 16 of 24 by bearing at ten degrees
+and a second, 17 at three degrees and a fifth of a second, 15 by the point's shift (`air-L10-line`, `-L3-line`,
+`-LP-line`).
+**Would be wrong if.** At forty repetitions more the bearing rule kept clearly fewer of either run than the point
+rule (the cells here differ by one and three, inside what a cell of forty gives twice over).
+**Used by.** H-MICRO-INTERCEPT (`CLOSE_RESEND_DEG`, `CLOSE_RESEND_FRAMES`).
+
+### K-engine-an-order-to-a-place-off-the-map-is-dropped
+**Claim.** The engine drops a move, a patrol or a fight whose place is outside the map's bounds: the unit keeps the
+orders it had, nothing is said to the sender, and the order still shows as given (the event a replay's command rows
+are written from fires before the check). A place worked out from where his units are can lie off the map with
+every unit on it: a point carried beyond a target near the edge (the wing's fly-out point, 800 past the point it
+closes on), a track's line run on past the edge. Aircraft fly outside the map as well (95 past the edge in a turn
+beside it, on the bench).
+**Status.** observed in one game (2026-11-18): of 34 moves to twelve fighters in four seconds, the 19 with a place
+off the map were not taken (the head order still the loop's at the next sample) and the 15 with a place on it all
+were; read in the engine's source; flown on the bench (2026-11-19): on a raid along the map's edge where half the
+wing's moves named a place off the map, the build that sent them as they were had its first fighter 1,000 from
+the place 8.4 s after the scramble and the build that puts the point on the map 3.6 s (sixteen repetitions each).
+Not flown: one order to a place off the map given straight to the engine and watched (under the host's guard
+three bombers ordered to x -600 flew to x 0).
+**Evidence.** `run/matches/1795054847-air-patrol-4-apex50` in the worktree `within-reason.air-intercept`, 21:32 to
+21:36: the tape's `cmd` rows for the fighters of `group_fighters` (twelve moves at 21:32.01 to z 6,397 to 6,843,
+the map 8,192 by 6,144) against the audit dump's unit rows (head order 16, the loop's fight, until the first move
+with a place on the map at 21:34.22). `upstream/RecoilEngine-2026.07.04/rts/Sim/Units/CommandAI/CommandAI.cpp`:
+`GiveCommand` calls `eventHandler.UnitCommand` and then `GiveCommandReal`, whose `AllowedCommand` returns false for
+`CMD_MOVE`, `CMD_PATROL`, `CMD_FIGHT` (and area attack, reclaim, repair, resurrect, restore, manual fire, the
+unloads, builds, an attack at the ground) when `IsCommandInMap` fails, with a line at debug level only. Counts by the match
+records: air-patrol-4 52 moves with such a place (38 the wing's, 9 scout cars'), air-patrol-3 406 (353 and 52),
+air-patrol-2 7 (scout cars'). The bench: `air-O1-along2` (adfb763d) against `air-N1-along2` (the mend),
+`air-G1-guard`; design note 2026-11-16-air-intercept 8.8, which also corrects the game's account (the bombers were
+inside the map, 2 to 200 from its edge).
+**Would be wrong if.** A unit given a move to a place outside the map flew or drove toward it.
+**Used by.** H-HOST-ON-THE-MAP (the host puts the place of every move, fight and patrol on the map, for the flagship
+and the bots); H-MICRO-INTERCEPT (`onto_map`: the wing's point where the fighter's line to it leaves the map).
+H-MICRO-ROVE's legs are covered by the host's guard alone. A reader of a tape's `cmd` rows: a row is an order
+given, not an order taken.

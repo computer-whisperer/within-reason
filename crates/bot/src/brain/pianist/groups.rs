@@ -118,8 +118,8 @@ pub(crate) enum Ward {
     Group(String),
     Builder(UnitId),
 }
-/// A roving group's log keeps this many lines.
-const ROVE_LOG: usize = 10;
+/// A roving or patrolling group's log keeps this many lines.
+const LANE_LOG: usize = 10;
 
 #[derive(Clone, Debug)]
 pub(crate) enum GroupTask {
@@ -146,6 +146,11 @@ pub(crate) enum GroupTask {
     /// `within`: a region the player marked, outside which the rovers look at nothing and attack nothing (the
     /// `rove_<region>` move; docs/design/2026-10-17-rove-destinations.md).
     Rove { within: Option<String> },
+    /// An air patrol (H-MICRO-INTERCEPT; `docs/design/2026-11-16-air-intercept.md` §7, the user's ruling A): the
+    /// group's fighters are the lane's, circling over the place and flown at the aircraft of his that come at it
+    /// (the lane's threat test and leash, §8 of the note), the engine choosing the targets. A pick like every task
+    /// (the `air_patrol_<place>` move); the way back is any other pick. `at`: the place's point; `place`: its name.
+    AirPatrol { at: Vec3, place: String },
 }
 
 /// One soldier lost: the frame, its type, and the killer with its type when the attacker was known and identified.
@@ -195,8 +200,10 @@ pub(crate) struct Group {
     pub reached: Vec<(String, i32)>,
     /// The first enemies in sight near the body since the last place reached: the frame and the words.
     pub met: Option<(i32, String)>,
-    /// What its rovers found, attacked, ran from and gave up, newest last, for the picture: (frame, words).
-    pub rove_log: Vec<(i32, String)>,
+    /// What the lane said of it while it roved or patrolled, newest last, for the picture: (frame, words). A roving
+    /// group's: what its rovers found, attacked, ran from and gave up; an air patrol's: what it scrambled at and
+    /// when it was back.
+    pub lane_log: Vec<(i32, String)>,
     /// The place whose walk ended in the hold the group is in (H-HANDS-ARRIVAL), until its next task, and how far
     /// from it the front stopped: the idle words say "a stop it has reached (spot_15)" within `ARRIVED` and "a stop
     /// 480 short of spot_63" past it, and while it is set the nearness register above is quiet (apex-v0409-comet-
@@ -260,12 +267,13 @@ impl Group {
             GroupTask::Engage { .. } => "attacking a party".to_string(),
             GroupTask::Hunt(h) => format!("hunting {}", h.party),
             GroupTask::Follow { name, .. } => format!("following {name}"),
+            GroupTask::AirPatrol { place, .. } => format!("patrolling the air over {place}"),
         }
     }
 
     /// A group of these slots at this place, with nobody in it yet: the deal fills it.
     pub(crate) fn new(name: String, domain: Domain, slots: micro::deal::Slots, place: Vec3, task: GroupTask, frame: i32) -> Group {
-        Group { name, domain, slots, place, members: Vec::new(), coming: Vec::new(), answer: None, lent: Vec::new(), ahead: None, task, last_order: frame, losses: Vec::new(), lost_coming: Vec::new(), losses_since: frame, loss_warned: false, shelling: false, screen: None, reached: Vec::new(), met: None, rove_log: Vec::new(), arrived_at: None }
+        Group { name, domain, slots, place, members: Vec::new(), coming: Vec::new(), answer: None, lent: Vec::new(), ahead: None, task, last_order: frame, losses: Vec::new(), lost_coming: Vec::new(), losses_since: frame, loss_warned: false, shelling: false, screen: None, reached: Vec::new(), met: None, lane_log: Vec::new(), arrived_at: None }
     }
 
     /// A group whose body is these soldiers, with a slot for each: what a test stands a group up as.
@@ -338,12 +346,22 @@ impl Group {
             GroupTask::Follow { at, .. } => units.iter().map(|u| Command::Fight { unit: u.id, to: *at, queue: false }).collect(),
             // The lane takes a roving group's soldiers from the next tick: no order of the hands'.
             GroupTask::Rove { .. } => Vec::new(),
+            // An air patrol's fighters are the lane's; these are what else its slots took (the caller's choice),
+            // which waits at the place as a held air group does.
+            GroupTask::AirPatrol { at, .. } => units.iter().flat_map(|u| [Command::MoveState { unit: u.id, state: 0 }, Command::Move { unit: u.id, to: *at, queue: false }]).collect(),
         }
     }
 
-    /// Whether the lane runs its soldiers (H-MICRO-ROVE).
+    /// Whether it roves (H-MICRO-ROVE).
     pub(crate) fn roving(&self) -> bool {
         matches!(self.task, GroupTask::Rove { .. })
+    }
+
+    /// Whether the lane runs its soldiers whole, choosing what they go at: a roving group (H-MICRO-ROVE) or an air
+    /// patrol (H-MICRO-INTERCEPT). The hands keep up no order for it, its menu has no move at a party, and what it
+    /// meets is no reason to ask again.
+    pub(crate) fn handed_over(&self) -> bool {
+        matches!(self.task, GroupTask::Rove { .. } | GroupTask::AirPatrol { .. })
     }
 
     /// The soldiers of the body lost since `since`, and their metal.
@@ -478,7 +496,7 @@ impl Brain {
         let unit_of: HashMap<UnitId, &OwnUnit> = soldiers.iter().map(|u| (u.id, *u)).collect();
         for group in pianist.groups.iter_mut().filter(|g| g.answer.is_none()) {
             group.place = match &group.task {
-                GroupTask::Hold { at, .. } => *at,
+                GroupTask::Hold { at, .. } | GroupTask::AirPatrol { at, .. } => *at,
                 _ => micro::deal::centre(group.members.iter().filter_map(|id| unit_of.get(id)).map(|u| u.pos)).unwrap_or(group.place),
             };
         }
@@ -508,9 +526,11 @@ impl Brain {
             }
             let f = fill.get(&group.name).cloned().unwrap_or_default();
             // A soldier that has come inside the gate of a group the hands order member by member takes its task's
-            // order; a declared group's is the lane's from the next tick, a rover the lane's whole.
+            // order; a declared group's is the lane's from the next tick, a rover the lane's whole, and so is an air
+            // patrol's fighter (what else its slots took gets the task's order: it waits at the place).
             if !group.declared() && !group.roving() {
-                let fresh: Vec<&OwnUnit> = f.with.iter().filter(|id| !group.members.contains(id)).filter_map(|id| unit_of.get(id).copied()).collect();
+                let patrol = matches!(group.task, GroupTask::AirPatrol { .. });
+                let fresh: Vec<&OwnUnit> = f.with.iter().filter(|id| !group.members.contains(id)).filter_map(|id| unit_of.get(id).copied()).filter(|u| !patrol || !self.is_fighter(u.def)).collect();
                 commands.extend(group.rejoin_orders(&fresh));
             }
             group.members = f.with;
@@ -593,13 +613,13 @@ impl Brain {
         // followers were sent 400-600 elmo to another member of the ward every second.)
         let bodies: Vec<(String, Vec3)> = pianist.groups.iter().filter_map(|g| self.lane_group(&g.lane_name()).map(|s| s.centre).or_else(|| g.body(own, None).map(|b| b.at)).map(|at| (g.name.clone(), at))).collect();
         for group in pianist.groups.iter_mut() {
-            // A roving group is the lane's (H-MICRO-ROVE): no hunt, no orders kept up, every member its own from the
-            // tick it joins.
-            if group.roving() {
+            // A roving group is the lane's (H-MICRO-ROVE), and an air patrol (H-MICRO-INTERCEPT): no hunt, no orders
+            // kept up, every member its own from the tick it joins.
+            if group.handed_over() {
                 continue;
             }
             let units = group.units(own);
-            let goal = match &group.task { GroupTask::Move { to, .. } => Some(*to), GroupTask::Engage { at, .. } | GroupTask::Follow { at, .. } => Some(*at), GroupTask::Hunt(h) => Some(h.at), GroupTask::Hold { .. } | GroupTask::Rove { .. } => None };
+            let goal = match &group.task { GroupTask::Move { to, .. } => Some(*to), GroupTask::Engage { at, .. } | GroupTask::Follow { at, .. } => Some(*at), GroupTask::Hunt(h) => Some(h.at), GroupTask::Hold { .. } | GroupTask::Rove { .. } | GroupTask::AirPatrol { .. } => None };
             // Where the body stands: a declared group's anchor, the lane's; else the body's place. A group with nobody
             // with it has nothing to keep up.
             let lane_state = if group.declared() { self.lane_group(&group.lane_name()).cloned() } else { None };
@@ -637,7 +657,7 @@ impl Brain {
             }
             let declared = group.declared();
             match &mut group.task {
-                GroupTask::Hold { .. } | GroupTask::Rove { .. } => {}
+                GroupTask::Hold { .. } | GroupTask::Rove { .. } | GroupTask::AirPatrol { .. } => {}
                 GroupTask::Move { to, place, .. } if declared => {
                     // The arrival (H-HANDS-ARRIVAL: the lane's report, four fifths of the soldiers in the group's
                     // blocks at the place), read a second after the order at the earliest: the state before it is
@@ -891,7 +911,7 @@ impl Brain {
                     }
                 };
                 pianist.rove_events.push(format!("group_{} {line}", group.name));
-                group.rove_log.push((frame, line));
+                group.lane_log.push((frame, line));
             }
             for (place, kinds) in found {
                 let line = format!("{clock} found his {} at {place}", kinds.iter().map(|(k, n)| if *n == 1 { k.clone() } else { format!("{n} {k}") }).collect::<Vec<_>>().join(", "));
@@ -899,10 +919,46 @@ impl Brain {
                     pianist.done.push(format!("{clock} group_{}'s rover {}", group.name, line.trim_start_matches(&clock).trim_start()));
                 }
                 pianist.rove_events.push(format!("group_{} {line}", group.name));
-                group.rove_log.push((frame, line));
+                group.lane_log.push((frame, line));
             }
-            let excess = group.rove_log.len().saturating_sub(ROVE_LOG);
-            group.rove_log.drain(..excess);
+            let excess = group.lane_log.len().saturating_sub(LANE_LOG);
+            group.lane_log.drain(..excess);
+        }
+        self.pianist = Some(pianist);
+    }
+
+    /// The lane's word from the air patrols (H-MICRO-INTERCEPT), into their groups' logs (the picture's `air_patrol`
+    /// entry) and into what the hands did for the player's report: how many fighters a patrol scrambled at what and
+    /// where, and when all of them were back over its place, with the fighters it lost meanwhile.
+    pub(crate) fn air_patrol_events(&mut self, events: &[micro::InterceptEvent], frame: i32) {
+        let Some(mut pianist) = self.pianist.take() else { return };
+        let clock = super::picture::clock(frame);
+        for group in pianist.groups.iter_mut() {
+            let GroupTask::AirPatrol { place, .. } = &group.task else { continue };
+            let lane_name = group.lane_name();
+            for event in events.iter().filter(|e| e.group == lane_name) {
+                let line = match &event.what {
+                    micro::InterceptWhat::Scrambled { contacts, at, out, fighters } => {
+                        format!("scrambled {fighters} of its fighters at {contacts} aircraft of his coming at {place}, at {}, {out:.0} from it", self.place_words(&pianist.places, *at))
+                    }
+                    micro::InterceptWhat::Returned { seconds } => {
+                        // The losses kept are a minute's.
+                        let within = (*seconds).min(60);
+                        let lost = group.losses.iter().filter(|(f, ..)| frame - f <= within * FRAMES_PER_SECOND).count();
+                        let losses = match (lost, *seconds > 60) {
+                            (0, _) => String::new(),
+                            (n, false) => format!(", {n} of its fighters lost meanwhile"),
+                            (n, true) => format!(", {n} of its fighters lost in the last minute of it"),
+                        };
+                        format!("all back over {place} after {seconds} s{losses}")
+                    }
+                };
+                pianist.done.push(format!("{clock} group_{}'s air patrol {line}", group.name));
+                pianist.patrol_events.push(format!("group_{} {clock} {line}", group.name));
+                group.lane_log.push((frame, format!("{clock} {line}")));
+            }
+            let excess = group.lane_log.len().saturating_sub(LANE_LOG);
+            group.lane_log.drain(..excess);
         }
         self.pianist = Some(pianist);
     }
@@ -1455,6 +1511,42 @@ mod tests {
         assert_eq!(ward("group_B").as_deref(), Some("group_A"));
         assert_eq!(ward("group_C"), None);
         assert_eq!(ward("group_A"), None);
+    }
+
+    /// An air patrol is the lane's (H-MICRO-INTERCEPT): its course word; what of it is no fighter waits at its place
+    /// (the lane flies the fighters alone); and the lane's word of a scramble and of the return goes into its log
+    /// and into what the hands did, with the fighters lost meanwhile.
+    #[test]
+    fn an_air_patrol_logs_its_scrambles_and_parks_what_is_no_fighter() {
+        use super::super::fixtures::{at, brain_of, own};
+        let mut brain = brain_of(&["armfig", "armthund"]);
+        let mut pianist = super::super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+        let place = at(2000.0, 2000.0);
+        let mut group = Group::of("F".into(), Domain::Air, vec![UnitId(1), UnitId(2)], GroupTask::idle_hold(Vec3::default()), 0);
+        group.set_task(GroupTask::AirPatrol { at: place, place: "home".into() }, 0);
+        assert!(group.handed_over() && !group.roving() && !group.declared());
+        assert_eq!(group.course_word(), "patrolling the air over home");
+        let bomber = own(3, 2, at(2600.0, 2000.0));
+        let parked = group.rejoin_orders(&[&bomber]);
+        assert!(matches!(parked.as_slice(), [Command::MoveState { unit: UnitId(3), state: 0 }, Command::Move { unit: UnitId(3), to, queue: false }] if *to == place), "{parked:?}");
+        assert!(brain.is_fighter(UnitDefId(1)) && !brain.is_fighter(UnitDefId(2)), "a Falcon is a fighter, a Stormbringer is not");
+        // A Falcon dies 20 s into a scramble of 34 s.
+        group.losses.push((900 + 20 * FRAMES_PER_SECOND, UnitDefId(1), None));
+        pianist.groups.push(group);
+        brain.pianist = Some(pianist);
+        let scrambled = micro::InterceptEvent { group: "group_F".into(), what: micro::InterceptWhat::Scrambled { contacts: 7, at: at(2000.0, 5000.0), out: 3000.0, fighters: 2 } };
+        let returned = micro::InterceptEvent { group: "group_F".into(), what: micro::InterceptWhat::Returned { seconds: 34 } };
+        brain.air_patrol_events(std::slice::from_ref(&scrambled), 900);
+        brain.air_patrol_events(std::slice::from_ref(&returned), 900 + 34 * FRAMES_PER_SECOND);
+        // Another group's event is not this one's.
+        brain.air_patrol_events(&[micro::InterceptEvent { group: "group_G".into(), what: micro::InterceptWhat::Returned { seconds: 5 } }], 2000);
+        let pianist = brain.pianist.as_ref().unwrap();
+        let log: Vec<&str> = pianist.groups[0].lane_log.iter().map(|(_, line)| line.as_str()).collect();
+        assert_eq!(log.len(), 2, "{log:?}");
+        assert!(log[0].starts_with("0:30 scrambled 2 of its fighters at 7 aircraft of his coming at home, at ") && log[0].ends_with(", 3000 from it"), "{}", log[0]);
+        assert_eq!(log[1], "1:04 all back over home after 34 s, 1 of its fighters lost meanwhile");
+        assert!(pianist.done.iter().any(|d| d.starts_with("0:30 group_F's air patrol scrambled 2 of its fighters at 7 aircraft of his")) && pianist.done.iter().any(|d| d.starts_with("1:04 group_F's air patrol all back over home after 34 s")), "{:?}", pianist.done);
+        assert_eq!(pianist.patrol_events.len(), 2);
     }
 
     /// A roving group is the lane's: the hands keep up no order for it, and its course word
