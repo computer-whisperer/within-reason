@@ -27,7 +27,8 @@ point off the map is an order the engine drops, so the fighters circled for thre
 warning.** **That fault is mended (section 8.8): the wing flies at a point off the map as far as the map goes, and
 the host puts the place of every move, fight and patrol on the map before the engine has it. On a bench raid cut to
 the game's geometry the first fighter was 1,000 from the place 3.6 s after the scramble against 8.4 s; no game has
-flown on it.** No bot of `bots/` declares a wing. Not merged.
+flown on it.** **Next, by his word of 2026-11-19: the wing's anti-air awareness is designed later, and its game
+flies the mend as well; where the games show that need is section 8.9.** No bot of `bots/` declares a wing. Not merged.
 
 ## 1. The ask, in his words
 
@@ -1153,3 +1154,54 @@ now flown to the edge by the host's guard, on another heading than the one plann
 (52 such legs in 8.5's game, 9 in 8.7's). The other senders of the flagship and the bots were not searched for
 places off the map; the count in the minute's line is there to find them. The protocol's fingerprint changes with
 `messages.rs`, as it already had on this branch: a merge still needs the shim installed again.
+
+### 8.9 Where the games show the anti-air need (2026-11-19)
+
+His word on the report of 8.8: "Let's work on wrapping this up. We can design the anti-air awareness and test
+implementation with the off-map fix at once later. Where do those earlier games show the anti-air need is exactly?"
+So the anti-air is not designed here, and its game is the mend's game too. This section is the record that design
+starts from; nothing was built for it.
+
+**It is one game's evidence: the third (8.5).** The first game lost ten fighters on the old loop's chase and was not
+read for his guns; the second lost none; in the fourth his anti-air was in reach of 16 of the 61 lost and the game's
+losses were to his fighters and to numbers (8.7). The bench has no scene of it: `outaa` (8.2) puts four turrets by
+his station to try the leash, not the wing's regard for them.
+
+**The count, and what it is.** At each of the third game's 220 Falcon deaths, the units of his in reach: a ground
+unit of the glossary's anti-air class within its range and 150 of the place the fighter fell. 152 had one (8.5's
+158 counted any ground unit with 40 a second against aircraft: six had a Platypus, a Sprinter or a Gunslinger and
+no anti-air). **The tape names no attacker for an aircraft, so this is who could have, not who did:** his fighters
+were within 800 as well at 41 of the 152, and 52 fell with neither near, which the count does not explain.
+The map is 8,192 by 6,144, our start (1286, 5421), his (6899, 684).
+
+| Where the group was kept (from home) | Lost | His anti-air in reach | Of those: fixed only, mobile only, both | Lost on the loop, no scramble open (anti-air in reach) | When |
+|---|---|---|---|---|---|
+| `home`, the design's case | 27 | 19 | 1, 18, 0 | 0 | 23 in the last raid, 39:10 on, his army's Archangels beneath; 4 in the 33 minutes before |
+| `spot_22` (1936, 1840), our northern outpost, 3,640 | 59 | 42 | 4, 30, 8 | 35 (20) | 22:49 to 35:43 |
+| `spot_58` (4208, 4352), mid-map, 3,111 | 39 | 35 | 22, 8, 5 | 1 (0) | 31:31 to 36:21 |
+| `spot_63` (2656, 4672), 1,561 | 27 | 17 | 0, 17, 0 | 7 (3) | 36:56 to 39:42 |
+| `army_sky` (6500, 4400), his half, 5,313 (two groups) | 32 | 19 | 13, 5, 1 | 7 (2) | 28:45 to 32:56 |
+| `spot_64` (3136, 4864), 1,932 | 16 | 7 | 6, 1, 0 | 1 (0) | 19:44 to 27:57 |
+| `spot_56` (3824, 4272), mid-map, 2,786 | 12 | 9 | 3, 5, 1 | 9 (6) | 16:53 to 18:10 |
+| `spot_48`, `guns_60`, his half | 8 | 4 | 4, 0, 0 | 1 (0) | 28:18 to 33:07 |
+| all | 220 | 152 | 53, 84, 15 | 61 (31) | |
+
+Fixed: Ferrets (range 950), Nettles (765), Chainsaws (1,200). Mobile: Archangels (1,200, 258 a second against
+aircraft, in reach at 77 deaths) and Crossbows (760, at 25).
+
+**Three situations, by that table.**
+1. *A scramble flown out over his turrets:* 159 fell with a scramble open, 121 of them with his anti-air in reach,
+   63 with a turret among it (51 turrets alone). It is the forward patrols': `spot_58` and `army_sky` have 33 of the
+   51. The turrets stand where they stood, and the leash's 3,000 from a place at mid-map or in his half covers them.
+2. *His army's anti-air come under the loop:* 61 fell circling with no scramble open and none of his fighters
+   near, 31 with his anti-air in reach, 29 of those mobile. `spot_22` has 20 of the 31 and `spot_56` 6: an outpost
+   and a forward spot his army walked to. The loop has no rule that leaves a place that is shot at. The other 30
+   fell with nothing of his counted near; not traced.
+3. *His army at our door with the raid:* the home patrol's last half minute, 18 of its 27 with Archangels in reach
+   and 12 of those with his fighters near as well (Highwinds: finding 3 of 8.5).
+
+**Read against the design's case:** over a place of ours with our anti-air under it, the patrol lost four fighters in
+thirty-three minutes and none to this. 193 of the 220 were lost by the three groups the player kept forward, over
+an outpost, mid-map and his half, which the move's words allow and say nothing against. So the need has a part
+that is the wing's (leave a place that is shot at; do not fly a scramble over known guns) and a part that is the
+words' and the player's (where a patrol is kept); how much of each is for the design.
