@@ -5,9 +5,13 @@ Branch `air-intercept` (worktree `within-reason.air-intercept`), **merged to mai
 worktree and the branch were removed the same day on his word ("Go ahead with the install script, move the games, and
 remove the worktree and branch"): the four games' records and the bench's 412 batches are in the main tree's
 `run/matches` now, the tapes' assets that main lacked (45) in `run/data/tape-assets`. Kept beside them and read by no
-game, in `run/data/air-intercept-kept/` (git-ignored): the four games' live-edge entries and Apex's record after the
-fourth game, neither put into the stores a game reads, and the bench's scenes, scripts and readers from the
-session's scratch directory. Begun 2026-11-16 from the user's review of the
+game, in `run/data/air-intercept-kept/` (git-ignored): the four games' live-edge entries, left out of the store the
+flagship reads, and the bench's scenes, scripts and readers from the session's scratch directory. Apex's record after
+the fourth game is the live one in the main tree (`run/data/opponent-state/Apex-v0.5.11/skirmish/apex-record.txt`, 435
+lines; the third game started from main's copy of 2026-11-14, 214 lines, and every pair of that copy is in the newer
+one), so the next game against Apex v0.5.11 continues the series; both copies are named in
+`run/data/opponent-state/apex-v0.5.11-records/`. Both by his word of 2026-11-19: "Carry the apex record forward and
+leave out the live-edge entries." Begun 2026-11-16 from the user's review of the
 lobby 3v3 on Tangerine (`run/matches/1794780805-human` in the main tree, lost about 35:00).
 
 **State (2026-11-19):** the wing is built in the micro engine and drilled (section 6; commits 67ba56b6 and
