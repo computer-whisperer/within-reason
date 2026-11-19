@@ -18,7 +18,13 @@ Apex with a 50 % bonus (section 8.5, a timeout at 40:00), was an air war: his ai
 ours in forty minutes and nothing under the home patrol, and it showed three things the bench had not: the seat's
 order budget held the wing's first moves for seven seconds in one scramble, the wing circles and scrambles into
 his ground anti-air (his anti-air was in reach where 158 of the 220 Falcons lost fell, most of them over patrols
-the player had put forward), and Falcons lose to Highwinds.** No bot of `bots/` declares a wing. Not merged.
+the player had put forward), and Falcons lose to Highwinds.** The workshop after it (section 8.6) built three
+things: the scouts' way no longer planned round a bomber, the budget's debt limit and first class, the wing's close
+sent by bearing. **A fourth game on that build (section 8.7, the same launch, lost at 36:30): the budget held no
+order in any minute and no way was sent in bursts; the patrol did not keep the energy field (his raids grew to
+about thirty bombers behind a sweep of 16 to 19 fighters, against 1 to 17 Falcons); and one fault new to us: a fly-out
+point off the map is an order the engine drops, so the fighters circled for three seconds of a ten-second
+warning.** No bot of `bots/` declares a wing. Not merged.
 
 ## 1. The ask, in his words
 
@@ -979,3 +985,79 @@ on either host from duel to duel, and the figures above are both hosts' summed (
 the loop's own orders (four patrol corners and two states a fighter a return); a queued chain in the budget; the
 other lanes' candidates for the first class (a flee's first step, a dodge), each to be named with its number.
 
+### 8.7 The fourth game (air-patrol-4-apex50, 2026-11-18)
+
+Asked whether to fly a game on the build of 8.6 before the anti-air: "Go ahead and run the game." Under test:
+beb3d407 (the scouts' way, the budget's debt limit and first class, the wing's close by bearing; read back from the
+arena's snapshot), the constant's 18 seconds, the launch of 8.5 word for word (Apex v0.5.11 standard with a 50 %
+bonus, Comet Catcher Remake 1.8, mirror, realtime, seed 3, 40 minutes, the same objective), the player on the
+`claude2` account by `run/claude_account.py`. `run/matches/1795054847-air-patrol-4-apex50` in the worktree.
+**Lost at 36:30** (not called; 145 turns; Jev $3.25; the account +2.0 points of its week with this session's own
+use on the same account inside them, extra usage +0.00).
+
+It was not the game of 8.5 again. He finished 162 Stormbringers (20 in 8.5), 129 Falcons, 24 Blizzards, 9
+Highwinds, 8 Banshees, 7 Hornets, 3 Liches; the player built 61 Falcons (224 in 8.5) from one plant and lost them
+all, in two patrols: `group_fighters` over home from 6:01 and over `energy` (1700, 4950) from 10:46,
+`group_fighters_north` over `spot_38` from 14:20. 47 scrambles (34 and 13), eleven of three seconds or less.
+
+**The budget and the scouts' way (items 1 and 2 of 8.6): held.** The host's line a minute, this game against 8.5's:
+
+| | 8.5 (0367459b) | this game (beb3d407) |
+|---|---|---|
+| orders sent | 69,666 in 40 min | 39,966 in 36 min |
+| moves held, replaced while held, dropped | 825, 523, 13 | 0, 0, 0 |
+| minutes with a wait of a second or more; the longest | 3; 20.7 s | 0; 0.0 s |
+| the seat's busiest second (orders the bot issued) | 409 (12:12) | 141 (32:21) |
+| first-class moves; past the class's share; past the bucket | - | 737; 0; 0 |
+| scout cars' ways sent; legs; sent again inside a second; inside six frames | 595; 8,291; 299; 137 | 115; 1,205; 30; 10 |
+| seconds in which one unit was given 40 moves or more | 27 (two Rovers, 12:09 to 12:17) | 0 |
+
+The condition of 8.5's burst did come up: a flying bomber or gunship of his was within 900 of a scout's way as it
+was sent in 11 of the 115 ways, and in 2 of the 30 sent again inside a second. No burst followed. The seat never
+came near its hundred a second (the busiest minute 2,501 orders), so the debt's limit and the first class were not
+what kept the moves on time here: with no burst there was nothing to be owed. Nothing in the game tells the close
+by bearing from the close as it was.
+
+**A fault new to us: a place off the map is an order the engine drops**
+(K-engine-an-order-to-a-place-off-the-map-is-dropped). At 21:32 four Stormbringers came at `energy` along the map's
+southern edge, first on course 2,956 out. The wing sent twelve fighters first-class moves that frame and the engine
+had them the next (the tape's `cmd` rows at 21:32.01): points 2,255 to 2,533 from the place, every one at z 6,397
+to 6,843 on a map 6,144 deep, for the bombers were flying outside it and the point to close on lies beside their
+track. The fighters' head order stayed the loop's and they stayed within 900 of the place until 21:37. Through
+21:35, 19 of the wing's moves had a place off the map and none was taken; 15 had one on it and every one was the
+fighter's head order at the next sample. The first on the map went out at 21:34.22, the first hit landed at 21:39
+with the bombers 1,311 out, all four were down by 21:43, and three Energy Converters 517 to 565 from the place were
+bombed at 21:42. The engine's source says the same (`CCommandAI::AllowedCommand` refuses a move, a patrol or a
+fight whose place is not in the map's bounds, after the event the tape's `cmd` row is written from). It is not of
+8.6's making: 8.5's record has 353 moves to Falcons with a place off the map (286 of them in the minute from
+20:00) under the close as it was, and this game 38 of the 737 first-class moves (19 in the minute from 21:00, 9 in the
+minute from 19:00). The scouts' ways have it too (52 legs in 8.5, 9 here, 7 in 8.4's game). Our corner on this map
+is 1,200 from the southern edge and 1,700 from the western, and an opponent that flies round the middle comes in
+along them.
+
+**The patrol did not keep the place, and could not at its size.** Until 25:00 his aircraft destroyed four things
+within 3,000 of `energy` (the three converters above and a builder); from 25:37 to the end, 63, two Fusion Reactors
+(32:39, 35:13), the Advanced Fusion Reactor (33:32) and the aircraft plant (35:20) among them. His raids from 25:37
+came as a sweep and then the bombers. At 25:35, 14 Falcons and 2 Highwinds came in from 3,400; the patrol's 17
+went out to them (13 beyond 1,000 by 25:43) and shot the sweep down by 25:50 for 6 lost. At 25:50 the first of
+the bombers was 1,750 from the place (24 Stormbringers, 4 Blizzards, a Liche and a Hornet in all), eight seconds
+behind the sweep's lead; of the 12 fighters left 7 to 10 were beyond 1,000 from the place, the furthest 1,950; the
+first bombs fell at 25:53 and 24 buildings were gone by 26:06. Most of the bombers died over the field after the drop (17 Stormbringers, 2
+Blizzards, the Liche and the Hornet down inside 3,000). The raid at 27:58 ran the same way by the hands' lines
+(24 Stormbringers, 15 Falcons, 4 Highwinds, 4 Blizzards against 13; 12 fighters lost; not traced second by
+second), and the bombers of 28:23 met 2 fighters. One
+plant did not refill the slots: from 28:23 the patrol held 1 to 6.
+
+**The fighters lost: 61.** At the death his ground anti-air was in reach of 13, his fighters within 800 of 16, both
+of 4, neither of 28; a scramble was open at 51; 10 fell within 1,000 of their place, 22 between 1,000 and 2,000, 22
+between 2,000 and 3,000, 7 beyond. (8.5: 220 lost, his anti-air in reach of 158.) Most of this game's were lost to
+his fighters and to numbers, not over his guns; the player's debrief reads it as the patrol scrambling 3,000 out
+into his Crossbows, Highwinds and flak and asks for the place back beside our own flak.
+
+**The game itself** the player's debrief puts on two blasts in our base (a Fusion Reactor at 24:16 to a ground
+party, the Advanced Fusion Reactor at 33:32, which the tape gives to a Hornet) and his tier-3 push after them.
+
+**Put to the user, nothing built:** an order's place is to be on the map before it is sent (in the wing, where the
+fighter's line to its point leaves the map; in the host, for every order with a place, since the engine drops them
+without a word); the raid that comes as a sweep and then bombers; the size of a patrol against forty aircraft is
+the player's and the brief's.

@@ -1422,7 +1422,7 @@ held ones for as long as the burst took to pay: 2,067 queued moves to two Rovers
 some 1,300 in debt, and three fighters' moves issued twelve to fourteen times each by the bot in the next seven
 seconds never reached the engine (the longest wait of that minute 20.7 s).
 **Status.** observed once in a game (2026-11-18); mended the same day (the bucket owes no more than it holds, and a
-first class of moves goes out at once: H-HOST-ORDER-BUDGET), the mend unit-tested and not yet seen in a game.
+first class of moves goes out at once: H-HOST-ORDER-BUDGET), the mend unit-tested. A game on it (air-patrol-4-apex50) had no burst and no held move, so it showed nothing of the mend either way.
 **Evidence.** `run/matches/1795017370-air-patrol-3-apex50` in the worktree `within-reason.air-intercept`: the match
 record's `cmd` rows for units 1590, 1647 and 18716 from 12:09.27 (moves to points 2,400 from home) against the
 tape's `cmd` rows for them (a move state at 12:09.28, an attack at 12:17.10, no move); the tape's `cmd` rows for
@@ -1441,7 +1441,7 @@ for as long as the bomber flew: 31 to 42 queued legs a time.
 **Status.** observed once in a game (2026-11-18), the cause read from the code and the game's rove log ("ran from
 his Stormbringer", "gave up looking at spot_49: its way passes the reach of something that can shoot it" at 12:09)
 and not reproduced on the bench; mended the same day (a way is planned round the shooters the rover can keep ahead
-of, and stands a second: H-MICRO-ROVE), the mend unit-tested and not yet seen in a game.
+of, and stands a second: H-MICRO-ROVE), the mend unit-tested. In the next game (air-patrol-4-apex50) his bombers or gunships were within 900 of a scout's way as it was sent 11 times and no way came in bursts (10 sent again inside six frames in the game, 137 in the game of the fault).
 **Evidence.** As the entry above: unit 11574's batches (the same end 5144,760 in every one, 31 to 42 legs, the head
 leg and the count changing from one to the next), the bomber's flight 12:07 to 12:22
 (`docs/design/2026-11-16-air-intercept.md` 8.5).
@@ -1494,3 +1494,24 @@ and a second, 17 at three degrees and a fifth of a second, 15 by the point's shi
 rule (the cells here differ by one and three, inside what a cell of forty gives twice over).
 **Used by.** H-MICRO-INTERCEPT (`CLOSE_RESEND_DEG`, `CLOSE_RESEND_FRAMES`).
 
+### K-engine-an-order-to-a-place-off-the-map-is-dropped
+**Claim.** The engine drops a move, a patrol or a fight whose place is outside the map's bounds: the unit keeps the
+orders it had, nothing is said to the sender, and the order still shows as given (the event a replay's command rows
+are written from fires before the check). Aircraft fly outside the map, so a place worked out from where his
+aircraft are can lie there.
+**Status.** observed in one game (2026-11-18): of 34 moves to twelve fighters in four seconds, the 19 with a place
+off the map were not taken (the head order still the loop's at the next sample) and the 15 with a place on it all
+were; read in the engine's source. Not flown on the bench.
+**Evidence.** `run/matches/1795054847-air-patrol-4-apex50` in the worktree `within-reason.air-intercept`, 21:32 to
+21:36: the tape's `cmd` rows for the fighters of `group_fighters` (twelve moves at 21:32.01 to z 6,397 to 6,843,
+the map 8,192 by 6,144) against the audit dump's unit rows (head order 16, the loop's fight, until the first move
+with a place on the map at 21:34.22). `upstream/RecoilEngine-2026.07.04/rts/Sim/Units/CommandAI/CommandAI.cpp`:
+`GiveCommand` calls `eventHandler.UnitCommand` and then `GiveCommandReal`, whose `AllowedCommand` returns false for
+`CMD_MOVE`, `CMD_PATROL`, `CMD_FIGHT` (and area attack, reclaim, repair, resurrect, restore, manual fire, the
+unloads, builds, an attack at the ground) when `IsCommandInMap` fails, with a line at debug level only. Counts by the match
+records: air-patrol-4 52 moves with such a place (38 the wing's, 9 scout cars'), air-patrol-3 406 (353 and 52),
+air-patrol-2 7 (scout cars').
+**Would be wrong if.** A unit given a move to a place outside the map flew or drove toward it.
+**Used by.** Nothing yet: H-MICRO-INTERCEPT's point to close on and H-MICRO-ROVE's legs can both lie off the map
+(design note 2026-11-16-air-intercept 8.7). A reader of a tape's `cmd` rows: a row is an order given, not an order
+taken.
