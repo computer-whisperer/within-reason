@@ -2,7 +2,12 @@
 
 Branch `air-intercept` (worktree `within-reason.air-intercept`), **merged to main 2026-11-19 as c4e26d71** (the user:
 "Agreed, merge air-intercept now."; 21 commits, up to 26bf6688; the merged tree built and its tests passed). The
-games' records and the bench's batches are still in that worktree's `run/matches`. Begun 2026-11-16 from the user's review of the
+worktree and the branch were removed the same day on his word ("Go ahead with the install script, move the games, and
+remove the worktree and branch"): the four games' records and the bench's 412 batches are in the main tree's
+`run/matches` now, the tapes' assets that main lacked (45) in `run/data/tape-assets`. Kept beside them and read by no
+game, in `run/data/air-intercept-kept/` (git-ignored): the four games' live-edge entries and Apex's record after the
+fourth game, neither put into the stores a game reads, and the bench's scenes, scripts and readers from the
+session's scratch directory. Begun 2026-11-16 from the user's review of the
 lobby 3v3 on Tangerine (`run/matches/1794780805-human` in the main tree, lost about 35:00).
 
 **State (2026-11-19):** the wing is built in the micro engine and drilled (section 6; commits 67ba56b6 and
@@ -30,9 +35,9 @@ warning.** **That fault is mended (section 8.8): the wing flies at a point off t
 the host puts the place of every move, fight and patrol on the map before the engine has it. On a bench raid cut to
 the game's geometry the first fighter was 1,000 from the place 3.6 s after the scramble against 8.4 s; no game has
 flown on it.** **Next, by his word of 2026-11-19: the wing's anti-air awareness is designed later, and its game
-flies the mend as well; where the games show that need is section 8.9.** No bot of `bots/` declares a wing. Merged (above); the shim in the user's BAR install is
-the one from before the merge until `run/install_to_bar.sh` is run on his word, and the protocol's fingerprint has
-changed, so a lobby game needs that first.
+flies the mend as well; where the games show that need is section 8.9.** No bot of `bots/` declares a wing. Merged (above), and the flagship's shim installed again
+in the user's BAR install from the merged build by `run/install_to_bar.sh` (2026-11-19, on his word; the installed
+library is the build's by its hash).
 
 ## 1. The ask, in his words
 
@@ -1157,7 +1162,7 @@ raid is the order adfb763d would have sent; those eight kept the reactors 6 of 8
 now flown to the edge by the host's guard, on another heading than the one planned, where before it was dropped
 (52 such legs in 8.5's game, 9 in 8.7's). The other senders of the flagship and the bots were not searched for
 places off the map; the count in the minute's line is there to find them. The protocol's fingerprint changes with
-`messages.rs`, as it already had on this branch: after the merge (2026-11-19) the shim still needs installing again.
+`messages.rs`, as it already had on this branch: the shim was installed again after the merge (2026-11-19).
 
 ### 8.9 Where the games show the anti-air need (2026-11-19)
 

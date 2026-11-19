@@ -1423,7 +1423,7 @@ some 1,300 in debt, and three fighters' moves issued twelve to fourteen times ea
 seconds never reached the engine (the longest wait of that minute 20.7 s).
 **Status.** observed once in a game (2026-11-18); mended the same day (the bucket owes no more than it holds, and a
 first class of moves goes out at once: H-HOST-ORDER-BUDGET), the mend unit-tested. A game on it (air-patrol-4-apex50) had no burst and no held move, so it showed nothing of the mend either way.
-**Evidence.** `run/matches/1795017370-air-patrol-3-apex50` in the worktree `within-reason.air-intercept`: the match
+**Evidence.** `run/matches/1795017370-air-patrol-3-apex50` in the worktree `within-reason.air-intercept` (removed 2026-11-19; its records are in the main tree's `run/matches`): the match
 record's `cmd` rows for units 1590, 1647 and 18716 from 12:09.27 (moves to points 2,400 from home) against the
 tape's `cmd` rows for them (a move state at 12:09.28, an attack at 12:17.10, no move); the tape's `cmd` rows for
 units 11574 and 13919 (a batch of one move and 30 to 41 queued moves every six to nine frames from 12:08.28); the
@@ -1508,7 +1508,7 @@ wing's moves named a place off the map, the build that sent them as they were ha
 the place 8.4 s after the scramble and the build that puts the point on the map 3.6 s (sixteen repetitions each).
 Not flown: one order to a place off the map given straight to the engine and watched (under the host's guard
 three bombers ordered to x -600 flew to x 0).
-**Evidence.** `run/matches/1795054847-air-patrol-4-apex50` in the worktree `within-reason.air-intercept`, 21:32 to
+**Evidence.** `run/matches/1795054847-air-patrol-4-apex50` in the worktree `within-reason.air-intercept` (removed 2026-11-19; its records are in the main tree's `run/matches`), 21:32 to
 21:36: the tape's `cmd` rows for the fighters of `group_fighters` (twelve moves at 21:32.01 to z 6,397 to 6,843,
 the map 8,192 by 6,144) against the audit dump's unit rows (head order 16, the loop's fight, until the first move
 with a place on the map at 21:34.22). `upstream/RecoilEngine-2026.07.04/rts/Sim/Units/CommandAI/CommandAI.cpp`:
