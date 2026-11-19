@@ -285,13 +285,16 @@ impl<L: Transport> Instance<L> {
             if self.budget.on() {
                 let (m, waiting) = self.budget.take_minute();
                 self.log(format_args!(
-                    "orders f={frame} minute: sent {} (moves {}), held {}, replaced {}, dropped {}, waiting {waiting}, longest wait {:.1} s",
+                    "orders f={frame} minute: sent {} (moves {}), held {}, replaced {}, dropped {}, waiting {waiting}, longest wait {:.1} s, first class {} (and {} past its share), past the bucket {}",
                     m.sent,
                     m.moves,
                     m.held,
                     m.replaced,
                     m.dropped,
-                    m.longest as f32 / 30.0
+                    m.longest as f32 / 30.0,
+                    m.first,
+                    m.first_late,
+                    m.past
                 ));
             }
         }
@@ -584,6 +587,7 @@ impl<L: Transport> Instance<L> {
         if let Err(code) = self.engine.issue(&command) {
             let (Command::Build { unit, .. }
             | Command::Move { unit, .. }
+            | Command::MoveNow { unit, .. }
             | Command::Fight { unit, .. }
             | Command::Patrol { unit, .. }
             | Command::FightReclaimingEnemies { unit, .. }

@@ -891,3 +891,34 @@ guard is a dead end. They held fine against bombers up to ~26:00, but Highwinds 
 of my 24 Falcons in 29 seconds at 39:40, and his Liche at 295 speed simply outruns Falcons so patrols can never
 catch it"; it asks for flak under the patrol and tier-2 fighters. It does not know it lost 220: the log's losses
 are a line a scramble. (The Liche flew past `spot_22` at 28:56 and went down 1,570 from the army group's place at 29:26.)
+
+### 8.6 Decisions, not refinements: the wing's orders, the budget's first class (2026-11-18)
+
+The workshop after 8.5. His words: "I don't think we gain much value from heavy micro here. When playing the game as
+a human, ususally ordering the fighter group once at the general vicinity of the targets suffices." Shown section 4's
+table (twelve Falcons with the turn-in keep what twenty-four keep on one order): "If the turn in is that effective,
+then we should find a way to keep it. A priority class for micro decisions that have a significant influence on the
+game would be good to add in general, but if we can make it more efficient that would also be beneficial." On the
+order proposed (1 the route sent again and the budget's debt, 2 the class, 3 the wing's orders; then anti-air, then
+headroom drills for the dogfight, the bomber's pass and the split against flak): "Agreed, proceed with 1 through 3."
+
+**The target, written before the build** (what was built and what the drills gave follows it):
+
+1. *The route sent again* (`crates/micro/src/rove.rs`). Cause: a way is planned round every shooter and planned
+   again when one comes to cover a leg, and a bomber crossing the map covered a leg of every new way each tick. A
+   way to a place or a healer is planned round, and judged by, the shooters the rover can keep ahead of alone (not
+   one that is mobile and at least as fast as it: it runs from that one when it comes into reach, as before); and a
+   way stands a second after it was planned whatever covers it.
+2. *The budget* (`crates/ai-host/src/budget.rs`). The bucket owes no more than it holds, and what goes out past that
+   is counted. A first class, `Command::MoveNow`: sent the frame it is given, charged to the bucket, within a share
+   of its own (20 a second, 40 at once); past the share a move like any other.
+3. *The wing's orders* (`crates/micro/src/intercept.rs`). An aircraft flies a heading, so a move is sent again when
+   the heading it asks changes (the bearing from the fighter to the new point against the bearing to the point last
+   sent, more than a few degrees), when the fighter is about to arrive at the point it has, or when it is idle: not
+   when a point two thousand away has shifted 120. The turn-in is decided once: it holds its course while a turn
+   begun now would bring it out too near the bombers or ahead of them, for three seconds at most, then turns, and
+   does not go back to holding (before, the rule changed its mind each tick while the estimate stood at the
+   threshold, and each change was a move a thousand away). Every move of the conversion is first-class; the move
+   back to the place is not. The measure: orders a fighter a scramble (about 18 before, ten of them moves), and the
+   two recorded runs, a tier-1 raid and the scenes of 8.2 against the wing as it was.
+

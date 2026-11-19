@@ -46,7 +46,9 @@ Every unit order of a seat, the flagship's and every bot's, goes through `Instan
 There an **order budget** (`crates/ai-host/src/budget.rs`) keeps a bucket of 100 orders a second (`RATE`), at most a
 second's worth deep (`DEPTH`).
 
-- **Not a move:** every unit order goes out when given and takes one from the bucket (the bucket may go below empty).
+- **Not a move:** every unit order goes out when given and takes one from the bucket (the bucket may go below empty;
+  from 2026-11-18 by no more than it holds, below).
+- **A first-class move** (`Command::MoveNow`, from 2026-11-18, below): out the frame it is given.
 - **A move that replaces the unit's orders** (`Move { queue: false }`): it goes out at once when the bucket has one
   and nothing is waiting. Otherwise it waits, one per unit: a newer move for the same unit replaces the one waiting,
   which then never goes out, and the unit keeps its place in the wait.
@@ -62,7 +64,42 @@ second's worth deep (`DEPTH`).
 This decides when a move goes out, never what it says: an execution rule like the micro engine, shared with the bots.
 The arm `WITHIN_REASON_ORDER_CAP` sets the rate in orders a second (0 turns the budget off). Once a game minute the
 host logs a line `orders f=… minute: …`: orders sent and moves among them, moves held, replaced while waiting,
-dropped by a later order, still waiting, the longest wait.
+dropped by a later order, still waiting, the longest wait; from 2026-11-18 the first-class moves sent (and those
+past the class's share) and the orders that went out past the bucket.
+
+### The debt's limit and the first class (2026-11-18)
+
+**What happened** (`air-patrol-3-apex50`, the flagship against Apex +50; `docs/design/2026-11-16-air-intercept.md`
+8.5): from 12:08.28 two roving Rovers were each sent a way of 31 to 35 queued legs again every six frames, 2,067
+moves in eight seconds (205 to 393 orders a second; the rove planned its way round a bomber crossing the map, which
+covered a leg of every new way the next tick: mended in `crates/micro/src/rove.rs` the same day). A queued move is
+not held and takes one from the bucket, and the bucket had no floor: it stood some 1,300 in debt. Three fighters
+ordered to meet that bomber were issued 12 to 14 moves each by the bot and the engine received none: the minute's
+longest wait was 20.7 s. The bomber came in unmet.
+
+**The user, in the workshop after it:** "A priority class for micro decisions that have a significant influence on
+the game would be good to add in general, but if we can make it more efficient that would also be beneficial"; on
+the proposal (the route, a limit to the debt, the class, the wing's own orders cut): "Agreed, proceed with 1 through
+3."
+
+- **The bucket owes no more than it holds** (`depth`, a second's worth). An order that goes out with the bucket at
+  that limit is counted (`past the bucket` in the minute's line) and not owed. So the moves that wait behind a flood
+  wait about a second after it, not until it is paid: the average over a stretch with a flood in it is above the
+  rate by what the flood was, which went out anyway. A flood shows in the log now instead of in the waiting.
+- **A first class of moves** (`bot_protocol::Command::MoveNow { unit, to }`): a move that replaces the unit's orders
+  and is a decision, not the refinement of one. It goes out the frame it is given whatever waits and whatever the
+  bucket owes, takes one from the bucket like any order, and drops the unit's waiting move (the older decision). To
+  the engine it is a move. **Its own share:** 20 a second (`FIRST_RATE`, a fifth of the rate; of a lower
+  `WITHIN_REASON_ORDER_CAP`, no more than that cap), two seconds of it at once (forty fighters leaving their loop in
+  one frame). Past the share it is offered as a plain move and waits its turn, so a lane that marked every move
+  first-class would flood nothing: the door has a width. The record writes it as a move with a fifth field.
+- **Who sends it today:** the wing's conversion alone (H-MICRO-INTERCEPT: the move out to meet a raid, the turn
+  in), three or four a fighter a scramble. **Who may:** a lane, for a move whose lateness by seconds decides
+  something (a flee's first step, a dodge, a split under a blast). Each new sender is a decision to be named, with
+  its number a second.
+
+Not done here: a queued chain is still never held (a way of thirty legs is thirty messages; the rove sends one a
+way, and a way stands a second at least now).
 
 ## How it is judged
 

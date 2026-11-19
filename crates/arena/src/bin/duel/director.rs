@@ -1982,7 +1982,7 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                 drill.note_orders(sent);
                 // Each unit's last movement order's point, whoever sent it (the per-second line's `goals`).
                 for c in &commands[from..] {
-                    if let Command::Move { unit, to, .. } | Command::Fight { unit, to, .. } = c
+                    if let Command::Move { unit, to, .. } | Command::MoveNow { unit, to } | Command::Fight { unit, to, .. } = c
                         && let Some(&i) = duel.armies[0].spawn_of.get(unit)
                     {
                         drill.goals.insert(i, *to);

@@ -1410,5 +1410,84 @@ whether the engine's queue or the sender drops them, and where between 8 and 32 
 against `1794979214-duel-air-L0-mill` (the same scene with the laps given two at first and one at a time after: at
 5350,2485 at 55 s and 5740,2546 at 110 s); `run/air_raid.py` `%R`.
 **Would be wrong if.** A unit given 32 queued moves at once flew the first of them.
-**Used by.** `run/air_raid.py` (a lap's orders go out as the lap before it ends). Not checked: whether anything of
-the flagship's or the bots' queues that many orders on one unit at once.
+**Used by.** `run/air_raid.py` (a lap's orders go out as the lap before it ends). Checked 2026-11-18: the rove
+queues that many on one unit (a way of 31 to 42 legs to a Rover at once, air-patrol-3-apex50 from 12:08.28), and
+the Rover drove (4816,4195 to 4478,4660 in four seconds under ways sent again), so the claim is the aircraft's on
+the bench and no rule of the engine's for every unit.
+
+### K-host-an-unheld-flood-puts-every-held-move-behind-its-debt
+**Claim.** With the order budget as first built (only a move that replaces a unit's orders is held, every other order
+goes out and takes one from the bucket, the bucket with no floor), a burst of orders that are not held starved the
+held ones for as long as the burst took to pay: 2,067 queued moves to two Rovers in eight seconds left the bucket
+some 1,300 in debt, and three fighters' moves issued twelve to fourteen times each by the bot in the next seven
+seconds never reached the engine (the longest wait of that minute 20.7 s).
+**Status.** observed once in a game (2026-11-18); mended the same day (the bucket owes no more than it holds, and a
+first class of moves goes out at once: H-HOST-ORDER-BUDGET), the mend unit-tested and not yet seen in a game.
+**Evidence.** `run/matches/1795017370-air-patrol-3-apex50` in the worktree `within-reason.air-intercept`: the match
+record's `cmd` rows for units 1590, 1647 and 18716 from 12:09.27 (moves to points 2,400 from home) against the
+tape's `cmd` rows for them (a move state at 12:09.28, an attack at 12:17.10, no move); the tape's `cmd` rows for
+units 11574 and 13919 (a batch of one move and 30 to 41 queued moves every six to nine frames from 12:08.28); the
+host's line `orders f=23400 minute: sent 3062 (moves 2801), held 102, replaced 262, dropped 13, ... longest wait
+20.7 s` in `00/engine.log`. The seat's seconds over the game: median 27 orders, ninetieth percentile 62, 45 of
+2,263 over 100, the only ones over 200 at 12:09 to 12:12 and 12:16 to 12:17.
+**Would be wrong if.** A held move had gone out within a second or two of a burst that size under the first budget.
+**Used by.** H-HOST-ORDER-BUDGET (the debt's limit, the first class).
+
+### K-rove-a-way-round-a-shooter-faster-than-the-rover-does-not-stand-a-tick
+**Claim.** The rove plans a way round every shooter's reach and plans it again when a shooter comes to cover a leg. A
+shooter faster than the rover that crosses the map (a Stormbringer at 250 a second over Rovers at 168) covers a leg
+of each new way within a tick or two, so the way was planned again and sent again whole every six to nine frames
+for as long as the bomber flew: 31 to 42 queued legs a time.
+**Status.** observed once in a game (2026-11-18), the cause read from the code and the game's rove log ("ran from
+his Stormbringer", "gave up looking at spot_49: its way passes the reach of something that can shoot it" at 12:09)
+and not reproduced on the bench; mended the same day (a way is planned round the shooters the rover can keep ahead
+of, and stands a second: H-MICRO-ROVE), the mend unit-tested and not yet seen in a game.
+**Evidence.** As the entry above: unit 11574's batches (the same end 5144,760 in every one, 31 to 42 legs, the head
+leg and the count changing from one to the next), the bomber's flight 12:07 to 12:22
+(`docs/design/2026-11-16-air-intercept.md` 8.5).
+**Would be wrong if.** With no shooter faster than the rover in sight a rover were sent its way whole more than once
+in a few seconds; or with the mend in, a bomber overhead still had the way sent again.
+**Used by.** H-MICRO-ROVE (`way_danger`, `NEEDLE_HOLD_FRAMES`).
+
+### K-micro-the-wings-turn-in-is-a-correction-flown-tick-by-tick
+**Claim.** The wing's turn-in rule (hold the course while a turn begun now would bring the fighter out nearer than
+100 behind the bombers or ahead of them, for three seconds at most, else come round; its move a point beside the
+fighter, sent again when that point has shifted 240) changes its mind from tick to tick while the estimate stands
+at the threshold, and that is the rule working. A variant that decided the turn-in once (hold, then turn, never
+back) and sent the turn's moves by bearing rolled the fighters out ahead of the bombers on a long head-on approach.
+Which of its two changes did it was not separated.
+**Status.** measured on the bench (2026-11-18), eight repetitions a cell.
+**Evidence.** The share of the fighter-seconds from the merge to the bombs spent ahead of the rearmost bomber and
+flying its way: the northern raid 25 % with the variant against 0 % with the rule, the line abreast 32 % against
+0 % (`air-S1-north`, `air-S1-line` against `air-G3-north`, `air-G3-line`, `run/air_drill.py --places`); fighters
+lost 0.9 a duel against none on both; hits a fighter-second on the northern raid 0.46 against 0.59. On the two
+recorded runs, where the merge comes seven seconds after contact, the shares did not differ (2 to 3 % ahead both).
+Neither change saved orders: the turn's moves by bearing were twice as many as by the point's shift (5.0 a fighter
+"coming round" against 2.4, `air-D1-run2` against `air-D0-run2`: the point is beside the fighter and moves with
+it), and deciding the turn once left the count where it was (12.2 and 19.1 moves a fighter a duel against 13.0 and
+18.2, `air-D2-*` against `air-D1-*`).
+**Would be wrong if.** A wing whose turn-in was decided once, its moves sent as the rule sends them, kept the
+fighters behind the bombers on the northern raid as often as the rule does and sent fewer moves.
+**Used by.** H-MICRO-INTERCEPT (the turn is left as it was; a design that wants fewer orders in the turn has to
+keep the correction).
+
+### K-micro-a-closing-fighter-flies-as-well-on-a-heading-a-second-as-on-a-point-five-times-a-second
+**Claim.** On the way out to its turn-in point a fighter needs its move again only when the bearing to the point
+has changed by ten degrees, and no more often than once a second. Sent again whenever the point had shifted 120 (no
+sooner than a fifth of a second after the last), it was sent eight to fourteen moves in the three to five seconds
+of a close on the two recorded runs and flew no better.
+**Status.** measured on the bench (2026-11-18), forty repetitions a cell on the two recorded runs.
+**Evidence.** Twelve Falcons, the two recorded runs, one build with the rule switched by the environment: the
+close's move by the point's shift (`air-B0-*`, `air-B0b-run1`) kept run 1 38 of 40 and run 2 15 of 16 on 244 and
+140 first-class moves a duel (20 and 12 a fighter; both hosts' lines summed, the wing sitting on either); by
+bearing, ten degrees and a second (`air-B2-*`, `air-B2b-*`), run 1 37 of 40 and run 2 39 of 40 on 123 and 85 (10
+and 7 a fighter); six degrees and half a second (`air-B1-*`, `air-B1b-run1`) run 1 35 of 40 and run 2 14 of 16 on
+150 and 98. The fighter-seconds from the merge to the bombs: in firing position 52 to
+62 % in every arm, ahead of the bombers 0 to 4 %, hits a fighter-second 0.40 to 0.42 on run 1 and 0.50 to 0.56 on
+run 2. Where the moves went (`WITHIN_REASON_MICRO_DEBUG`, `air-D0-*`, four duels a run): by the point's shift 7.9
+and 14.1 a fighter in the close and 4.6 and 5.6 in the turn. The turn's moves sent by bearing instead were twice as
+many (`air-D1-*`: the turn's point is beside the fighter and moves with it), so the turn keeps the point's shift.
+**Would be wrong if.** At forty repetitions more the bearing rule kept clearly fewer of either run than the point
+rule (the cells here differ by one and three, inside what a cell of forty gives twice over).
+**Used by.** H-MICRO-INTERCEPT (`CLOSE_RESEND_DEG`, `CLOSE_RESEND_FRAMES`).
+

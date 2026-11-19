@@ -355,6 +355,8 @@ impl Recorder {
                     None => json!(["build", unit.0, self.def(Some(def))]),
                 },
                 Command::Move { unit, to, .. } => json!(["move", unit.0, to.x as i32, to.z as i32]),
+                // A first-class move: a move with a fifth field (`docs/harness/record-format.md`).
+                Command::MoveNow { unit, to } => json!(["move", unit.0, to.x as i32, to.z as i32, 1]),
                 Command::Fight { unit, to, .. } => json!(["fight", unit.0, to.x as i32, to.z as i32]),
                 Command::Patrol { unit, to, .. } => json!(["patrol", unit.0, to.x as i32, to.z as i32]),
                 Command::FightReclaimingEnemies { unit, to, .. } => json!(["fight_reclaiming_enemies", unit.0, to.x as i32, to.z as i32]),

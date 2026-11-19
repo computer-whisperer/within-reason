@@ -1077,6 +1077,9 @@ const CANCEL_TARGET_COMMAND: c_int = 34924;
                     facing: site.as_ref().and_then(|s| s.facing()).unwrap_or(sys::UNIT_COMMAND_BUILD_NO_FACING),
                 })
             }
+            // A first-class move is the budget's to tell from a move (`budget::Budget::offer` makes it one); one that
+            // comes here as it was given is a move that replaces the unit's orders.
+            Command::MoveNow { unit, to } => return self.issue(&Command::Move { unit, to, queue: false }),
             Command::Move { unit, to, queue } => {
                 let mut pos = self.on_the_ground(to);
                 self.handle(sys::COMMAND_UNIT_MOVE, &mut sys::SMoveUnitCommand {

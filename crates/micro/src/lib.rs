@@ -617,7 +617,7 @@ fn same_order(a: &Command, b: &Command) -> bool {
 
 fn unit_of(command: &Command) -> Option<UnitId> {
     match *command {
-        Command::Move { unit, .. } | Command::Fight { unit, .. } | Command::Attack { unit, .. } | Command::Stop { unit } | Command::SetTarget { unit, .. } | Command::ClearTarget { unit } => Some(unit),
+        Command::Move { unit, .. } | Command::MoveNow { unit, .. } | Command::Fight { unit, .. } | Command::Attack { unit, .. } | Command::Stop { unit } | Command::SetTarget { unit, .. } | Command::ClearTarget { unit } => Some(unit),
         _ => None,
     }
 }

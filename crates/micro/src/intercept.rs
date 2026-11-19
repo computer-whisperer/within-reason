@@ -172,8 +172,22 @@ pub const WINDOW: f32 = 2.0;
 /// nose again, air-I1-run2-f12.)
 const ALONG_DEG: f32 = 60.0;
 const NEAR_REACH: f32 = 1.5;
-/// A move is sent again when its point has shifted this far, no sooner than this many frames after the last.
-const RESEND_MOVED: f32 = 120.0;
+/// The close's move is a heading asked of the fighter toward a point far off: it is sent again when the bearing from
+/// the fighter to the point is this far off the bearing to the point it was last sent, no sooner than
+/// `CLOSE_RESEND_FRAMES` after; when the fighter is within `ARRIVING` of the point it has (an aircraft with no order
+/// lands); or when it is idle. Not when the point has shifted 120, as the rule first was: by that a fighter was
+/// sent eight to fourteen moves in the three to five seconds of a close on the two recorded runs (air-D0-*), most
+/// of them a meeting point refined along its own bearing. At ten degrees and a second the wing kept what it kept
+/// (run 1 37 of 40, run 2 39 of 40, the same shares of its seconds in each place from the merge to the bombs) on
+/// half the conversion's moves (air-B2-*, air-B2b-* against air-B0-*, air-B0b-*;
+/// `docs/design/2026-11-16-air-intercept.md` 8.6).
+const CLOSE_RESEND_DEG: f32 = 10.0;
+const CLOSE_RESEND_FRAMES: i32 = FRAMES_PER_SECOND;
+const ARRIVING: f32 = 300.0;
+/// The turn's move is a point beside the fighter itself, steering it tick by tick: again when the point has shifted
+/// this far, no sooner than this many frames after the last. (By bearing the turn was sent twice as often: the
+/// point moves with the fighter, and the bearing to the old one swings as it comes round; air-D1-*.)
+const TURN_RESEND_MOVED: f32 = 240.0;
 const RESEND_FRAMES: i32 = 6;
 /// The move's point is carried this far beyond the turn's point along the fighter's way, so the plane never
 /// arrives at it (an aircraft with no order lands).
@@ -192,23 +206,32 @@ const ATTACK_IDLE_RESEND: i32 = FRAMES_PER_SECOND / 2;
 const MOVESTATE_HOLD: i32 = 0;
 const MOVESTATE_MANOEUVRE: i32 = 1;
 
-/// The loop's bounds in force: the constants, or `WITHIN_REASON_INTERCEPT` for a drill (`guard=2000,leash=3500,seconds=18`).
+/// The loop's bounds in force: the constants, or `WITHIN_REASON_INTERCEPT` for a drill
+/// (`guard=2000,leash=3500,seconds=18,closedeg=6,closegap=0.5`).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Bounds {
     pub guard: f32,
     pub leash: f32,
     pub seconds: f32,
+    /// The close's sending rule: degrees (`closedeg`) and seconds (`closegap`); `resend=point` is the rule as it
+    /// first was (again when the point has shifted 120), the bench's arm to fly one against the other in one build.
+    pub close_deg: f32,
+    pub close_gap: f32,
+    pub by_point: bool,
 }
 
 pub fn bounds() -> Bounds {
     static BOUNDS: std::sync::OnceLock<Bounds> = std::sync::OnceLock::new();
     *BOUNDS.get_or_init(|| {
-        let mut bounds = Bounds { guard: GUARD, leash: LEASH, seconds: THREAT_SECONDS };
+        let mut bounds = Bounds { guard: GUARD, leash: LEASH, seconds: THREAT_SECONDS, close_deg: CLOSE_RESEND_DEG, close_gap: CLOSE_RESEND_FRAMES as f32 / FRAMES_PER_SECOND as f32, by_point: false };
         for pair in std::env::var("WITHIN_REASON_INTERCEPT").unwrap_or_default().split(',') {
             match pair.split_once('=').map(|(key, value)| (key.trim(), value.trim().parse::<f32>())) {
                 Some(("guard", Ok(v))) => bounds.guard = v,
                 Some(("leash", Ok(v))) => bounds.leash = v,
                 Some(("seconds", Ok(v))) => bounds.seconds = v,
+                Some(("closedeg", Ok(v))) => bounds.close_deg = v,
+                Some(("closegap", Ok(v))) => bounds.close_gap = v,
+                _ if pair.trim() == "resend=point" => bounds.by_point = true,
                 _ => {}
             }
         }
@@ -713,14 +736,14 @@ impl Lane {
                         place,
                         b.leash,
                     );
-                    let due = match memory.sent {
-                        Some((Sent::Move(last), sent)) => unit.idle || (frame - sent >= RESEND_FRAMES && last.dist2d(to) > RESEND_MOVED),
-                        _ => true,
-                    };
-                    if due {
+                    let rule = if b.by_point { Resend::Shifted(120.0, RESEND_FRAMES) } else { Resend::Heading(b.close_deg, (b.close_gap * FRAMES_PER_SECOND as f32) as i32) };
+                    if let Some(why) = move_due(memory.sent, unit, to, frame, rule) {
+                        if debug {
+                            eprintln!("{} f={frame} micro: #{} sent a move (close) {why}", view.label(), unit.id.0);
+                        }
                         memory.sent = Some((Sent::Move(to), frame));
                         self.counts.1 += 1;
-                        commands.push(Command::Move { unit: unit.id, to, queue: false });
+                        commands.push(Command::MoveNow { unit: unit.id, to });
                     }
                     report.closing += 1;
                 }
@@ -744,9 +767,15 @@ impl Lane {
                     // while the turn would bring it out too near them or ahead of them.
                     let behind = rollout_behind(unit.pos, h, rear.pos, u, s, (ROLL_IN - turned).max(0.0));
                     let against = dot(h, u) < INSIDE_DEG.to_radians().cos();
-                    let to = if behind < TRAIL - HOLD_BAND && turned < HOLD_SECONDS && against {
+                    // Read every tick, and it does change its mind while the estimate stands at the threshold: that is
+                    // the rule holding the fighter's roll-out where it wants it. Decided once instead, the wing
+                    // rolled out ahead of the bombers on a long approach (a quarter to a third of its seconds from
+                    // the merge to the bombs on the northern raid and the line abreast, none before: air-S1-*).
+                    let holds = behind < TRAIL - HOLD_BAND && turned < HOLD_SECONDS;
+                    let branch = if holds && against { "holds on" } else if holds { "holds across" } else if against { "comes round" } else { "onto their track" };
+                    let to = if holds && against {
                         carried(unit.pos, (-u.0, -u.1), BEYOND)
-                    } else if behind < TRAIL - HOLD_BAND && turned < HOLD_SECONDS {
+                    } else if holds {
                         // Across the track, the way it is already going (away from it when it is going neither).
                         let n = (-u.1, u.0);
                         let going = dot(h, n);
@@ -764,14 +793,13 @@ impl Lane {
                         carried(rear.pos, u, s * (TURN_SECONDS - turned).max(0.0) + TURN_AHEAD)
                     };
                     let to = pulled(to, place, b.leash);
-                    let due = match memory.sent {
-                        Some((Sent::Move(last), sent)) => unit.idle || (frame - sent >= RESEND_FRAMES && last.dist2d(to) > 2.0 * RESEND_MOVED),
-                        _ => true,
-                    };
-                    if due {
+                    if let Some(why) = move_due(memory.sent, unit, to, frame, Resend::Shifted(TURN_RESEND_MOVED, RESEND_FRAMES)) {
+                        if debug {
+                            eprintln!("{} f={frame} micro: #{} sent a move (turn: {branch}) {why}", view.label(), unit.id.0);
+                        }
                         memory.sent = Some((Sent::Move(to), frame));
                         self.counts.1 += 1;
-                        commands.push(Command::Move { unit: unit.id, to, queue: false });
+                        commands.push(Command::MoveNow { unit: unit.id, to });
                     }
                     report.turning += 1;
                 }
@@ -841,6 +869,35 @@ fn coming(c: &Contact, place: Vec3, b: Bounds) -> bool {
 }
 
 /// A point no further from the place than the leash: itself, or the point of the leash on the way to it.
+/// When a move is sent again.
+#[derive(Clone, Copy, Debug)]
+enum Resend {
+    /// The point has shifted this far, no sooner than this many frames after the last.
+    Shifted(f32, i32),
+    /// The bearing from the fighter to the point is this many degrees off the bearing to the point last sent, no
+    /// sooner than this many frames after; or the fighter is about to arrive at the point it has.
+    Heading(f32, i32),
+}
+
+/// Whether a fighter flown by moves is to be sent `to`, and why (the lane's debug line): its first move, it is
+/// idle, or the rule says again.
+fn move_due(sent: Option<(Sent, i32)>, unit: &OwnUnit, to: Vec3, frame: i32, rule: Resend) -> Option<&'static str> {
+    let Some((Sent::Move(last), at)) = sent else { return Some("its first") };
+    if unit.idle {
+        return Some("idle");
+    }
+    match rule {
+        Resend::Shifted(shift, frames) => (frame - at >= frames && last.dist2d(to) > shift).then_some("the point shifted"),
+        Resend::Heading(degrees, frames) => {
+            if last.dist2d(unit.pos) < ARRIVING {
+                return Some("arriving");
+            }
+            let (Some(had), Some(asked)) = (dir(sub(last, unit.pos)), dir(sub(to, unit.pos))) else { return Some("no bearing") };
+            (frame - at >= frames && dot(had, asked) < degrees.to_radians().cos()).then_some("another heading")
+        }
+    }
+}
+
 fn pulled(to: Vec3, place: Vec3, leash: f32) -> Vec3 {
     let out = to.dist2d(place);
     if out <= leash {
@@ -1105,7 +1162,7 @@ mod tests {
         let second = EnemyUnit { vel: at(-230.0 / 30.0, 0.0), ..bomber(70, 3200.0, 2100.0, true) };
         let out = lane.tick(&host, &tick(36, vec![falcon(1, 760.0, 2000.0, (280.0, 0.0))], vec![second]), &mut Vec::new(), false);
         assert!(!out.commands.iter().any(|c| matches!(c, Command::Attack { .. })), "{:?}", out.commands);
-        assert!(out.commands.iter().any(|c| matches!(c, Command::Move { .. })), "{:?}", out.commands);
+        assert!(out.commands.iter().any(|c| matches!(c, Command::MoveNow { .. })), "{:?}", out.commands);
         assert_eq!(lane.intercept_report("wing").map(|r| (r.contacts, r.closing, r.trailing)), Some((1, 1, 0)));
         // One scramble said, and no return between the two bodies.
         assert!(out.intercepts.is_empty(), "{:?}", out.intercepts);
@@ -1126,6 +1183,28 @@ mod tests {
 
     /// At a radar contact that flies the wing leaves its loop for the point beside the contact's track and ahead of
     /// it; it is not ordered at the contact.
+    /// A move is a heading asked: the same heading to a point further on is no new order, another heading is, and
+    /// a fighter about to arrive at its point, or idle, is always sent on.
+    #[test]
+    fn a_move_is_sent_again_when_the_heading_it_asks_changes() {
+        let fighter = falcon(1, 2000.0, 2000.0, (-250.0, 0.0));
+        let sent = Some((Sent::Move(at(0.0, 2000.0)), 100));
+        let rule = Resend::Heading(CLOSE_RESEND_DEG, CLOSE_RESEND_FRAMES);
+        let due = |sent, unit: &OwnUnit, to, frame| move_due(sent, unit, to, frame, rule).is_some();
+        assert!(due(None, &fighter, at(0.0, 2000.0), 100));
+        assert!(!due(sent, &fighter, at(-150.0, 2000.0), 130), "the point 150 further on the same bearing");
+        assert!(!due(sent, &fighter, at(0.0, 2300.0), 130), "300 aside at 2,000: eight and a half degrees");
+        assert!(due(sent, &fighter, at(0.0, 2400.0), 130), "400 aside at 2,000: eleven degrees");
+        assert!(!due(sent, &fighter, at(0.0, 2400.0), 100 + CLOSE_RESEND_FRAMES - 1), "not within a second of the last");
+        let near = falcon(1, 250.0, 2000.0, (-250.0, 0.0));
+        assert!(due(sent, &near, at(-800.0, 2000.0), 130), "about to arrive");
+        let idle = OwnUnit { idle: true, ..falcon(1, 2000.0, 2000.0, (0.0, 0.0)) };
+        assert!(due(sent, &idle, at(0.0, 2000.0), 130));
+        // The turn's rule is the point's shift.
+        assert!(move_due(sent, &fighter, at(0.0, 2300.0), 130, Resend::Shifted(TURN_RESEND_MOVED, RESEND_FRAMES)).is_some());
+        assert!(move_due(sent, &fighter, at(0.0, 2200.0), 130, Resend::Shifted(TURN_RESEND_MOVED, RESEND_FRAMES)).is_none());
+    }
+
     #[test]
     fn a_wing_scrambles_at_a_radar_contact_that_flies_to_a_point_beside_its_track() {
         let host = Host::new(Vec::new());
@@ -1139,10 +1218,21 @@ mod tests {
         let out = lane.tick(&host, &tick(60, vec![falcon(1, 2000.0, 1950.0, (-250.0, 0.0))], vec![bomber(60, -1000.0, 2000.0, false)]), &mut Vec::new(), false);
         assert!(matches!(out.intercepts.as_slice(), [InterceptEvent { what: InterceptWhat::Scrambled { contacts: 1, fighters: 1, .. }, .. }]), "{:?}", out.intercepts);
         assert!(!out.commands.iter().any(|c| matches!(c, Command::Attack { .. })), "{:?}", out.commands);
-        let to = out.commands.iter().find_map(|c| match c { Command::Move { to, .. } => Some(*to), _ => None }).expect("a move");
+        let to = out.commands.iter().find_map(|c| match c { Command::MoveNow { to, .. } => Some(*to), _ => None }).expect("a first-class move");
         // West of it, toward the bomber, and on its own (north) side of the track.
         assert!(to.x < 1500.0 && to.z < 2000.0, "{to:?}");
         assert_eq!(lane.intercept_report("wing").map(|r| (r.contacts, r.closing)), Some((1, 1)));
+        // Two seconds in which it has not yet come round (it flies on east, as a fighter on the far side of its
+        // loop does) and the bomber flies on: the meeting point falls back along the track with every tick the
+        // fighter loses, and the heading asked of it stays west. One move more at most; by the point's shift
+        // (120, as the rule first was) it was sent the point again and again.
+        let mut more = 0;
+        for k in 1..=20 {
+            let (f, b) = (falcon(1, 2000.0 + 25.0 * k as f32, 1950.0, (250.0, 0.0)), bomber(60, -1000.0 + 23.0 * k as f32, 2000.0, false));
+            let out = lane.tick(&host, &tick(60 + 3 * k, vec![f], vec![b]), &mut Vec::new(), false);
+            more += out.commands.iter().filter(|c| matches!(c, Command::MoveNow { .. } | Command::Move { .. })).count();
+        }
+        assert!(more <= 1, "{more} moves in two seconds of coming round");
     }
 
     /// Behind the bombers and flying their way a fighter attacks, the rearmost first and each bomber covered by the
@@ -1173,7 +1263,7 @@ mod tests {
         for frame in (30..60).step_by(3) {
             let out = lane.tick(&host, &tick(frame, vec![falcon(1, 1200.0, 1950.0, (280.0, 0.0))], lone.clone()), &mut Vec::new(), false);
             attacks += out.commands.iter().filter(|c| matches!(c, Command::Attack { .. })).count();
-            across |= out.commands.iter().any(|c| matches!(c, Command::Move { to, .. } if (to.z - 1950.0).abs() > 500.0));
+            across |= out.commands.iter().any(|c| matches!(c, Command::MoveNow { to, .. } if (to.z - 1950.0).abs() > 500.0));
         }
         assert_eq!(attacks, 0);
         assert!(across, "never sent across the track");

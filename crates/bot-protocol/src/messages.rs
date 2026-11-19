@@ -792,6 +792,12 @@ pub enum Command {
     /// queue; `queue` is ignored for them (the engine reads that option bit as "build five").
     Build { unit: UnitId, def: UnitDefId, site: Option<BuildSite>, queue: bool },
     Move { unit: UnitId, to: Vec3, queue: bool },
+    /// A move that replaces the unit's orders and is a decision, not the refinement of one: a fighter leaving its
+    /// loop for a raid or turning in behind it, where seconds decide. The host's order budget sends it the frame it
+    /// is given, ahead of every waiting move and whatever the bucket owes, within a share of its own
+    /// (H-HOST-ORDER-BUDGET's first class, `docs/design/2026-11-10-order-budget.md`); to the engine it is a move.
+    /// Whoever sends it answers for how many: past the share it waits its turn as any move does.
+    MoveNow { unit: UnitId, to: Vec3 },
     Fight { unit: UnitId, to: Vec3, queue: bool },
     /// The engine's patrol: the unit flies or walks between where it is and `to` (and every further point queued),
     /// each leg a fight order the engine renews at its end. A fighter on a leg takes the nearest enemy aircraft in
