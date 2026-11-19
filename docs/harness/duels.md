@@ -312,11 +312,11 @@ from the lane (before, a script with a rove row put them under the flee, the fan
 and return are notes in the per-second log's `orders` (`{"wing": "scrambled", "contacts", "at", "out", "fighters"}`,
 `{"wing": "returned", "seconds"}`), and each line carries `wing`: the contacts it has taken on, what else flies in
 its sight (`watched`) and its fighters loitering, returning, closing, turning and trailing. `WITHIN_REASON_ORDER_CAP=8` holds a host to that many orders a second (0: no budget), and the host's line
-`orders f=… minute: …` in a batch's `00/engine.log` says what it sent, held and sent first-class (the wing sits on
+`orders f=… minute: …` in a batch's `00/engine.log` says what it sent, held and sent first-class, and how many orders' places it pulled onto the map (the wing sits on
 either host from duel to duel: both hosts' lines are to be summed). `WITHIN_REASON_MICRO_DEBUG=1` prints each fighter's state every half second
 (its phase, speed, heading off the bombers', how far ahead of the rearmost and across), its turn-in and trail
 lines, and from 2026-11-18 a line for every move it is sent with the phase, the turn's branch and the reason
-(`sent a move (close) another heading`, `(turn: comes round) the point shifted`). `run/air_drill.py --places` reads where the fighters were from the merge to the bombs (in firing position,
+(`sent a move (close) another heading`, `(turn: comes round) the point shifted`; from 2026-11-19 with `, its point off the map` when the point asked for was and the fighter is sent to where its line leaves the map). `run/air_drill.py --places` reads where the fighters were from the merge to the bombs (in firing position,
 inbound, ahead, wide, far) and the hits a second each place landed: the instrument the law was found with
 (`docs/design/2026-11-16-air-intercept.md` section 6.2). `run/air_drill.py --leash` reads how far the fighters went
 from the place they keep and whether they came back (the furthest any got, the seconds with one over 1,500 out,

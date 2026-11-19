@@ -500,6 +500,7 @@ impl Lane {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn intercept(&mut self, view: &dyn View, name: &str, place: Vec3, fighters: &[&OwnUnit], enemies: &[EnemyUnit], frame: i32, commands: &mut Vec<Command>, fired: &mut Vec<&'static str>, events: &mut Vec<InterceptEvent>, debug: bool) {
         let b = bounds();
+        let map = extent(view);
         let mut wing = self.wings.remove(name).unwrap_or_default();
         // What flies in the seat's sight, wherever it is, each with its track: whether its course holds at the
         // place, and whether the wing has taken it on.
@@ -665,7 +666,7 @@ impl Lane {
             let Some(body) = chosen.get(&unit.id).map(|index| &bodies[*index]) else {
                 // No threat is its: the way back to the place, then the loop.
                 let memory = self.interceptors.get_mut(&unit.id).expect("entered above");
-                if home(memory, unit, k, place, frame, commands, &mut self.counts) {
+                if home(memory, unit, k, place, map, frame, commands, &mut self.counts) {
                     report.returning += 1;
                 } else {
                     report.loitering += 1;
@@ -725,7 +726,7 @@ impl Lane {
                         eprintln!("{} f={frame} micro: #{} turns in on {} ({name}): {along:.0} ahead of it along its track, {across:.0} across, a turn of {:.0} planned", view.label(), unit.id.0, rear.id.0, turn.to_degrees());
                     }
                 } else {
-                    let to = pulled(
+                    let asked = pulled(
                         match dir(sub(at, unit.pos)) {
                             Some(d) => carried(at, d, BEYOND),
                             None => at,
@@ -733,9 +734,10 @@ impl Lane {
                         place,
                         b.leash,
                     );
+                    let to = onto_map(unit.pos, asked, map);
                     if let Some(why) = move_due(memory.sent, unit, to, frame, Resend::Heading(b.close_deg, (b.close_gap * FRAMES_PER_SECOND as f32) as i32)) {
                         if debug {
-                            eprintln!("{} f={frame} micro: #{} sent a move (close) {why}", view.label(), unit.id.0);
+                            eprintln!("{} f={frame} micro: #{} sent a move (close) {why}{}", view.label(), unit.id.0, if to == asked { "" } else { ", its point off the map" });
                         }
                         memory.sent = Some((Sent::Move(to), frame));
                         self.counts.1 += 1;
@@ -788,10 +790,11 @@ impl Lane {
                     } else {
                         carried(rear.pos, u, s * (TURN_SECONDS - turned).max(0.0) + TURN_AHEAD)
                     };
-                    let to = pulled(to, place, b.leash);
+                    let asked = pulled(to, place, b.leash);
+                    let to = onto_map(unit.pos, asked, map);
                     if let Some(why) = move_due(memory.sent, unit, to, frame, Resend::Shifted(TURN_RESEND_MOVED, RESEND_FRAMES)) {
                         if debug {
-                            eprintln!("{} f={frame} micro: #{} sent a move (turn: {branch}) {why}", view.label(), unit.id.0);
+                            eprintln!("{} f={frame} micro: #{} sent a move (turn: {branch}) {why}{}", view.label(), unit.id.0, if to == asked { "" } else { ", its point off the map" });
                         }
                         memory.sent = Some((Sent::Move(to), frame));
                         self.counts.1 += 1;
@@ -902,10 +905,36 @@ fn pulled(to: Vec3, place: Vec3, leash: f32) -> Vec3 {
     Vec3 { x: place.x + (to.x - place.x) * leash / out, y: to.y, z: place.z + (to.z - place.z) * leash / out }
 }
 
+/// The map's width and height in elmos, from a host that has its terrain.
+fn extent(view: &dyn View) -> Option<(f32, f32)> {
+    view.terrain().filter(|t| t.cell > 0.0 && t.width > 0 && t.height > 0).map(|t| (t.width as f32 * t.cell, t.height as f32 * t.cell))
+}
+
+/// Where a fighter at `from` is sent for the point `to`. The engine drops a move to a place off the map and the
+/// fighter flies on as it was (K-engine-an-order-to-a-place-off-the-map-is-dropped), and the wing's points lie
+/// there whenever what it flies at is within `BEYOND` of the map's edge on the far side of the fighter, or outside
+/// the map as aircraft can be (air-patrol-4-apex50, 21:32: twelve fighters circled for three seconds of a
+/// ten-second warning). Off the map the point is where the fighter's line to it leaves the map: the heading asked,
+/// a shorter way to fly. For a fighter already there (within `ARRIVING` of that point) or itself outside, it is
+/// the map's nearest point to `to`, which takes it along the edge.
+fn onto_map(from: Vec3, to: Vec3, map: Option<(f32, f32)>) -> Vec3 {
+    let Some((width, height)) = map else { return to };
+    let near = to.on_the_map(width, height);
+    if near == to || from.on_the_map(width, height) != from {
+        return near;
+    }
+    // The furthest along the line that is still on the map, each axis for itself.
+    let along = |from: f32, to: f32, max: f32| if to > max { (max - from) / (to - from) } else if to < 0.0 { from / (from - to) } else { 1.0 };
+    let t = along(from.x, to.x, width - 1.0).min(along(from.z, to.z, height - 1.0)).clamp(0.0, 1.0);
+    let edge = Vec3 { x: from.x + (to.x - from.x) * t, y: to.y, z: from.z + (to.z - from.z) * t }.on_the_map(width, height);
+    if edge.dist2d(from) >= ARRIVING { edge } else { near }
+}
+
 /// A fighter with no threat: a move order to the place under hold position while it is further than `HOME` from it
 /// (a fighter on a move order searches for nothing), the loop round the place inside, each fighter beginning at the
 /// next corner. Whether it is on its way back.
-fn home(memory: &mut Interceptor, unit: &OwnUnit, k: usize, place: Vec3, frame: i32, commands: &mut Vec<Command>, counts: &mut (u32, u32)) -> bool {
+#[allow(clippy::too_many_arguments)]
+fn home(memory: &mut Interceptor, unit: &OwnUnit, k: usize, place: Vec3, map: Option<(f32, f32)>, frame: i32, commands: &mut Vec<Command>, counts: &mut (u32, u32)) -> bool {
     memory.target = None;
     memory.ahead = 0;
     let out = unit.pos.dist2d(place);
@@ -940,7 +969,10 @@ fn home(memory: &mut Interceptor, unit: &OwnUnit, k: usize, place: Vec3, frame: 
         commands.push(Command::MoveState { unit: unit.id, state: MOVESTATE_HOLD });
         for step in 0..4 {
             let (dx, dz) = corners[(k + step) % 4];
-            commands.push(Command::Patrol { unit: unit.id, to: Vec3 { x: place.x + dx, y: place.y, z: place.z + dz }, queue: step > 0 });
+            // A corner off the map (a place within half the loop of the edge) is the map's nearest point to it: a
+            // patrol order to a place off the map is dropped as a move is.
+            let corner = Vec3 { x: place.x + dx, y: place.y, z: place.z + dz };
+            commands.push(Command::Patrol { unit: unit.id, to: map.map_or(corner, |(width, height)| corner.on_the_map(width, height)), queue: step > 0 });
         }
     }
     false
@@ -1263,5 +1295,59 @@ mod tests {
         }
         assert_eq!(attacks, 0);
         assert!(across, "never sent across the track");
+    }
+
+    /// A place off the map is an order the engine drops (K-engine-an-order-to-a-place-off-the-map-is-dropped): the
+    /// point a fighter is sent for is where its line to it leaves the map, and along the edge for a fighter that is
+    /// there already or outside.
+    #[test]
+    fn a_point_off_the_map_is_flown_at_as_far_as_the_map_goes() {
+        let map = Some((4096.0, 4096.0));
+        assert_eq!(onto_map(at(1000.0, 1000.0), at(-500.0, 1000.0), None), at(-500.0, 1000.0), "a host with no terrain: as asked");
+        assert_eq!(onto_map(at(1000.0, 1000.0), at(3000.0, 4000.0), map), at(3000.0, 4000.0), "on the map: as asked");
+        assert_eq!(onto_map(at(1000.0, 1000.0), at(-500.0, 1000.0), map), at(0.0, 1000.0));
+        assert_eq!(onto_map(at(3000.0, 3000.0), at(5000.0, 5000.0), map), at(4095.0, 4095.0), "the engine's last place is a size less one");
+        // The bearing asked stands: a point 2,000 south and 1,000 east leaves the map 1,095 south and 547.5 east.
+        assert_eq!(onto_map(at(1000.0, 3000.0), at(2000.0, 5000.0), map), at(1547.5, 4095.0));
+        // At the edge, a short way from it, or outside: the map's nearest point to what was asked.
+        assert_eq!(onto_map(at(1000.0, 4095.0), at(2000.0, 5000.0), map), at(2000.0, 4095.0));
+        assert_eq!(onto_map(at(1000.0, 3900.0), at(1100.0, 4500.0), map), at(1100.0, 4095.0));
+        assert_eq!(onto_map(at(1000.0, 4300.0), at(2000.0, 5000.0), map), at(2000.0, 4095.0));
+    }
+
+    /// Bombers that come in from outside the map's edge: the point beside their track, and the 800 a move is
+    /// carried beyond it, lie off the map, and the fighter is sent to the edge on that bearing (as the wing was
+    /// built its first moves were to places off the map, and the fighters of air-patrol-4-apex50 circled on for
+    /// three seconds at 21:32). A loop at the map's edge keeps its corners on it.
+    #[test]
+    fn a_wing_sends_no_fighter_to_a_place_off_the_map() {
+        let mut host = Host::new(Vec::new());
+        host.terrain = Some(crate::test_host::flat_terrain());
+        let on_the_map = |commands: &[Command]| {
+            for c in commands {
+                if let Command::Move { to, .. } | Command::MoveNow { to, .. } | Command::Patrol { to, .. } = c {
+                    assert!((0.0..=4095.0).contains(&to.x) && (0.0..=4095.0).contains(&to.z), "{c:?}");
+                }
+            }
+        };
+        let place = at(1500.0, 2000.0);
+        let mut lane = Lane::default();
+        lane.set_group("wing", vec![UnitId(1)], GroupOrder::new(GroupKind::Intercept { place }, Vec::new()));
+        // The bomber 1,200 west of the map's western edge, flying east at the place; the fighter over the place, a
+        // little north of the track.
+        let mut moves = Vec::new();
+        for k in 0..=20 {
+            let out = lane.tick(&host, &tick(30 + 3 * k, vec![falcon(1, 1500.0, 1950.0, (-250.0, 0.0))], vec![bomber(60, -1200.0 + 23.0 * k as f32, 2000.0, true)]), &mut Vec::new(), false);
+            on_the_map(&out.commands);
+            moves.extend(out.commands.iter().filter_map(|c| match c { Command::MoveNow { to, .. } => Some(*to), _ => None }));
+        }
+        // On the western edge, on its own side of the track: the bearing of the point it was flown at.
+        let first = moves.first().expect("a first-class move");
+        assert!(first.x == 0.0 && (1600.0..1900.0).contains(&first.z), "{first:?}");
+        let mut lane = Lane::default();
+        lane.set_group("wing", vec![UnitId(1)], GroupOrder::new(GroupKind::Intercept { place: at(200.0, 2000.0) }, Vec::new()));
+        let out = lane.tick(&host, &tick(30, vec![falcon(1, 200.0, 2000.0, (0.0, 0.0))], Vec::new()), &mut Vec::new(), false);
+        assert_eq!(out.commands.iter().filter(|c| matches!(c, Command::Patrol { .. })).count(), 4, "{:?}", out.commands);
+        on_the_map(&out.commands);
     }
 }

@@ -170,6 +170,8 @@ struct Instance<L: Transport> {
     /// H-HOST-ORDER-BUDGET: the seat's unit orders held to the Apex average, moves only
     /// (`docs/design/2026-11-10-order-budget.md`).
     budget: budget::Budget,
+    /// Orders this minute whose place lay off the map and went to the map's nearest point to it (`issue`).
+    pulled: u32,
 }
 
 /// Wall seconds the engine thread spent on one instance (`docs/design/2026-10-27-engine-thread.md`): an in-library
@@ -282,10 +284,11 @@ impl<L: Transport> Instance<L> {
         if frame % TIMING_INTERVAL == 0 && frame > 0 {
             let Spent { reads, bot, apply } = std::mem::take(&mut self.spent);
             self.log(format_args!("timing f={frame} minute: reads {reads:.3} s, bot {bot:.3} s, apply {apply:.3} s"));
+            let pulled = std::mem::take(&mut self.pulled);
             if self.budget.on() {
                 let (m, waiting) = self.budget.take_minute();
                 self.log(format_args!(
-                    "orders f={frame} minute: sent {} (moves {}), held {}, replaced {}, dropped {}, waiting {waiting}, longest wait {:.1} s, first class {} (and {} past its share), past the bucket {}",
+                    "orders f={frame} minute: sent {} (moves {}), held {}, replaced {}, dropped {}, waiting {waiting}, longest wait {:.1} s, first class {} (and {} past its share), past the bucket {}, pulled onto the map {pulled}",
                     m.sent,
                     m.moves,
                     m.held,
@@ -296,6 +299,8 @@ impl<L: Transport> Instance<L> {
                     m.first_late,
                     m.past
                 ));
+            } else if pulled > 0 {
+                self.log(format_args!("orders f={frame} minute: pulled onto the map {pulled}"));
             }
         }
         let Some(link) = &mut self.link else { return };
@@ -582,8 +587,26 @@ impl<L: Transport> Instance<L> {
         }
     }
 
-    /// One order to the engine; a refusal goes to the bot against its unit.
-    fn issue(&mut self, command: Command) {
+    /// One order to the engine; a refusal goes to the bot against its unit. A move, a fight or a patrol to a place
+    /// off the map goes to the map's nearest point to it, and is counted for the minute's line: the engine drops
+    /// such an order whole and says nothing, the unit keeping the orders it had
+    /// (K-engine-an-order-to-a-place-off-the-map-is-dropped). A build's site is the engine's own answer and a
+    /// silo's aim is not ours to move.
+    fn issue(&mut self, mut command: Command) {
+        if let Command::Move { to, .. }
+        | Command::MoveNow { to, .. }
+        | Command::Fight { to, .. }
+        | Command::Patrol { to, .. }
+        | Command::FightReclaimingEnemies { to, .. }
+        | Command::Tend { to, .. } = &mut command
+        {
+            let (width, height) = self.engine.map_size();
+            let on = to.on_the_map(width, height);
+            if on != *to {
+                *to = on;
+                self.pulled += 1;
+            }
+        }
         if let Err(code) = self.engine.issue(&command) {
             let (Command::Build { unit, .. }
             | Command::Move { unit, .. }
@@ -803,6 +826,7 @@ impl<L: Transport> Host<L> {
                 hold_asked: None,
                 held: None,
                 budget: budget::Budget::from_env(),
+                pulled: 0,
             };
             instance.log("init");
             // Hello at init, before the people place their starts and long before the first update: the player takes

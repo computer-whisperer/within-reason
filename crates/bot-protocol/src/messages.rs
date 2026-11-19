@@ -56,6 +56,13 @@ impl Vec3 {
         let (dx, dz) = (self.x - other.x, self.z - other.z);
         (dx * dx + dz * dz).sqrt()
     }
+
+    /// The nearest place to this one that an order can name, on a map `width` by `height` elmos. The engine drops a
+    /// move, a fight or a patrol to a place outside `[0, width - 1]` by `[0, height - 1]` without a word, the unit
+    /// keeping the orders it had (`CCommandAI::AllowedCommand`; K-engine-an-order-to-a-place-off-the-map-is-dropped).
+    pub fn on_the_map(self, width: f32, height: f32) -> Vec3 {
+        Vec3 { x: self.x.clamp(0.0, (width - 1.0).max(0.0)), y: self.y, z: self.z.clamp(0.0, (height - 1.0).max(0.0)) }
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -996,5 +1003,22 @@ mod grid_tests {
         assert!(!grid.at(-1.0, 10.0) && !grid.at(9000.0, 10.0), "off the grid is uncovered");
         assert!((grid.share() - 128.0 / 16384.0).abs() < 1e-6);
         assert!(!Grid::default().at(10.0, 10.0));
+    }
+}
+
+
+#[cfg(test)]
+mod place_tests {
+    use super::Vec3;
+
+    /// The engine takes an order to a place from 0 to the map's size less one on each axis, and drops one outside
+    /// (`float3::IsInBounds`, `maxxpos = mapx * SQUARE_SIZE - 1`).
+    #[test]
+    fn a_place_off_the_map_has_a_nearest_place_on_it() {
+        let at = |x: f32, z: f32| Vec3 { x, y: 7.0, z };
+        assert_eq!(at(3288.0, 6551.0).on_the_map(8192.0, 6144.0), at(3288.0, 6143.0));
+        assert_eq!(at(-5.0, 9000.0).on_the_map(8192.0, 6144.0), at(0.0, 6143.0));
+        assert_eq!(at(8192.0, 100.0).on_the_map(8192.0, 6144.0), at(8191.0, 100.0), "the size itself is outside");
+        assert_eq!(at(4000.0, 3000.0).on_the_map(8192.0, 6144.0), at(4000.0, 3000.0));
     }
 }

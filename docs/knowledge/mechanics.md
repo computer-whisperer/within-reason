@@ -1497,11 +1497,17 @@ rule (the cells here differ by one and three, inside what a cell of forty gives 
 ### K-engine-an-order-to-a-place-off-the-map-is-dropped
 **Claim.** The engine drops a move, a patrol or a fight whose place is outside the map's bounds: the unit keeps the
 orders it had, nothing is said to the sender, and the order still shows as given (the event a replay's command rows
-are written from fires before the check). Aircraft fly outside the map, so a place worked out from where his
-aircraft are can lie there.
+are written from fires before the check). A place worked out from where his units are can lie off the map with
+every unit on it: a point carried beyond a target near the edge (the wing's fly-out point, 800 past the point it
+closes on), a track's line run on past the edge. Aircraft fly outside the map as well (95 past the edge in a turn
+beside it, on the bench).
 **Status.** observed in one game (2026-11-18): of 34 moves to twelve fighters in four seconds, the 19 with a place
 off the map were not taken (the head order still the loop's at the next sample) and the 15 with a place on it all
-were; read in the engine's source. Not flown on the bench.
+were; read in the engine's source; flown on the bench (2026-11-19): on a raid along the map's edge where half the
+wing's moves named a place off the map, the build that sent them as they were had its first fighter 1,000 from
+the place 8.4 s after the scramble and the build that puts the point on the map 3.6 s (sixteen repetitions each).
+Not flown: one order to a place off the map given straight to the engine and watched (under the host's guard
+three bombers ordered to x -600 flew to x 0).
 **Evidence.** `run/matches/1795054847-air-patrol-4-apex50` in the worktree `within-reason.air-intercept`, 21:32 to
 21:36: the tape's `cmd` rows for the fighters of `group_fighters` (twelve moves at 21:32.01 to z 6,397 to 6,843,
 the map 8,192 by 6,144) against the audit dump's unit rows (head order 16, the loop's fight, until the first move
@@ -1510,8 +1516,11 @@ with a place on the map at 21:34.22). `upstream/RecoilEngine-2026.07.04/rts/Sim/
 `CMD_MOVE`, `CMD_PATROL`, `CMD_FIGHT` (and area attack, reclaim, repair, resurrect, restore, manual fire, the
 unloads, builds, an attack at the ground) when `IsCommandInMap` fails, with a line at debug level only. Counts by the match
 records: air-patrol-4 52 moves with such a place (38 the wing's, 9 scout cars'), air-patrol-3 406 (353 and 52),
-air-patrol-2 7 (scout cars').
+air-patrol-2 7 (scout cars'). The bench: `air-O1-along2` (adfb763d) against `air-N1-along2` (the mend),
+`air-G1-guard`; design note 2026-11-16-air-intercept 8.8, which also corrects the game's account (the bombers were
+inside the map, 2 to 200 from its edge).
 **Would be wrong if.** A unit given a move to a place outside the map flew or drove toward it.
-**Used by.** Nothing yet: H-MICRO-INTERCEPT's point to close on and H-MICRO-ROVE's legs can both lie off the map
-(design note 2026-11-16-air-intercept 8.7). A reader of a tape's `cmd` rows: a row is an order given, not an order
-taken.
+**Used by.** H-HOST-ON-THE-MAP (the host puts the place of every move, fight and patrol on the map, for the flagship
+and the bots); H-MICRO-INTERCEPT (`onto_map`: the wing's point where the fighter's line to it leaves the map).
+H-MICRO-ROVE's legs are covered by the host's guard alone. A reader of a tape's `cmd` rows: a row is an order
+given, not an order taken.

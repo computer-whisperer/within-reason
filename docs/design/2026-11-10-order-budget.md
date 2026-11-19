@@ -65,7 +65,9 @@ This decides when a move goes out, never what it says: an execution rule like th
 The arm `WITHIN_REASON_ORDER_CAP` sets the rate in orders a second (0 turns the budget off). Once a game minute the
 host logs a line `orders f=… minute: …`: orders sent and moves among them, moves held, replaced while waiting,
 dropped by a later order, still waiting, the longest wait; from 2026-11-18 the first-class moves sent (and those
-past the class's share) and the orders that went out past the bucket.
+past the class's share) and the orders that went out past the bucket; from 2026-11-19 the orders whose place was
+off the map and was pulled onto it (H-HOST-ON-THE-MAP, not the budget's: the one place the host changes what an
+order says, since the engine drops an order to a place off the map).
 
 ### The debt's limit and the first class (2026-11-18)
 

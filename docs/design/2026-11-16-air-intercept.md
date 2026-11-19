@@ -24,7 +24,10 @@ sent by bearing. **A fourth game on that build (section 8.7, the same launch, lo
 order in any minute and no way was sent in bursts; the patrol did not keep the energy field (his raids grew to
 about thirty bombers behind a sweep of 16 to 19 fighters, against 1 to 17 Falcons); and one fault new to us: a fly-out
 point off the map is an order the engine drops, so the fighters circled for three seconds of a ten-second
-warning.** No bot of `bots/` declares a wing. Not merged.
+warning.** **That fault is mended (section 8.8): the wing flies at a point off the map as far as the map goes, and
+the host puts the place of every move, fight and patrol on the map before the engine has it. On a bench raid cut to
+the game's geometry the first fighter was 1,000 from the place 3.6 s after the scramble against 8.4 s; no game has
+flown on it.** No bot of `bots/` declares a wing. Not merged.
 
 ## 1. The ask, in his words
 
@@ -1022,8 +1025,9 @@ by bearing from the close as it was.
 (K-engine-an-order-to-a-place-off-the-map-is-dropped). At 21:32 four Stormbringers came at `energy` along the map's
 southern edge, first on course 2,956 out. The wing sent twelve fighters first-class moves that frame and the engine
 had them the next (the tape's `cmd` rows at 21:32.01): points 2,255 to 2,533 from the place, every one at z 6,397
-to 6,843 on a map 6,144 deep, for the bombers were flying outside it and the point to close on lies beside their
-track. The fighters' head order stayed the loop's and they stayed within 900 of the place until 21:37. Through
+to 6,843 on a map 6,144 deep, for the bombers were flying along the edge, 2 to 200 inside it, and the fighter's
+point is carried 800 beyond the point to close on beside their track (corrected in 8.8: this line first said the
+bombers were flying outside the map). The fighters' head order stayed the loop's and they stayed within 900 of the place until 21:37. Through
 21:35, 19 of the wing's moves had a place off the map and none was taken; 15 had one on it and every one was the
 fighter's head order at the next sample. The first on the map went out at 21:34.22, the first hit landed at 21:39
 with the bombers 1,311 out, all four were down by 21:43, and three Energy Converters 517 to 565 from the place were
@@ -1061,3 +1065,91 @@ party, the Advanced Fusion Reactor at 33:32, which the tape gives to a Hornet) a
 fighter's line to its point leaves the map; in the host, for every order with a place, since the engine drops them
 without a word); the raid that comes as a sweep and then bombers; the size of a patrol against forty aircraft is
 the player's and the brief's.
+
+### 8.8 The mend: an order's place is on the map (2026-11-19)
+
+The user, 2026-11-18, on the proposal that closes 8.7: "We can proceed with fixing the off-map fault next."
+
+**What the fault is, said again.** 8.7 first said the bombers were flying outside the map. They were not. At 21:32
+the four Stormbringers flew west along the southern edge 2 to 200 inside it (z 5,942 to 6,142 of 6,144; his own
+moves name z 6,042 and 6,142). The point off the map was the fighter's own: the point to close on lies beside their
+track ahead of the rearmost, so near the edge where they are, and the wing carries the point it sends 800 further
+along the fighter's line (`BEYOND`, so that the plane never arrives: an aircraft with no order lands). From a place
+1,200 inside the edge that line meets the edge at an angle, and the twelve points sent at 21:32 lay 250 to 700
+past it. No aircraft need be outside the map: a body flying within about 800 of an edge, closed on from the
+map's inside, gives the fault; so does a track whose line runs on past the edge.
+
+**Built** (the tree after adfb763d):
+
+- `Vec3::on_the_map(width, height)` (`crates/bot-protocol/src/messages.rs`): the nearest place an order can name, x
+  within 0 and the width less one, z likewise (the engine's own bounds).
+- **The host** (`crates/ai-host/src/lib.rs`, `Instance::issue`; H-HOST-ON-THE-MAP): the place of a move, a
+  first-class move, a fight, a patrol, a fight that reclaims and a tend is put on the map before the order goes to
+  the engine, for the flagship and every bot of `bots/`, and counted: the minute's line ends `pulled onto the map
+  N` (with the budget off, a line of its own when N is not 0). A build's site and a silo's aim are left as given
+  and the engine still drops them: a site moved is another building's place, an aim moved another target. The
+  host's is the last guard and knows no heading: its point is the nearest, not the one on the unit's way.
+- **The wing** (`crates/micro/src/intercept.rs`, `onto_map`): a fly-out point or a turn-in point off the map is
+  replaced by the place where the fighter's line to it leaves the map, so the heading is the one asked for. The
+  nearest place on the map is sent instead for a fighter that is itself at the edge or outside, and when the place
+  on its line is within 300 of it (`ARRIVING`: it would arrive and land). The loop's four corners are kept on the
+  map for a place within 350 of an edge. The debug line of a move says `, its point off the map`.
+
+Unit tests: `a_point_off_the_map_is_flown_at_as_far_as_the_map_goes`,
+`a_wing_sends_no_fighter_to_a_place_off_the_map` (a bomber in from beyond the western edge: with the correction
+taken out the wing's first move names x -285 and the test fails) and
+`a_place_off_the_map_has_a_nearest_place_on_it`.
+
+**The bench did not show the fault until the scene was the game's.** Three raids along the southern edge of the
+bench base (a turn at the edge, the south-east corner, a leg along the edge; `air-E0-*` on adfb763d, `air-E1-*` on
+the mend, sixteen each) gave the same on both builds: reactors kept 16 and 15 of 16, 6 and 8 of 16, 16 and 16 of
+16, and 3.5 against 3.8 s, 2.4 against 2.5 s, 3.1 against 3.0 s from the scramble to the first fighter 1,000 out.
+With the debug line on, 1 of 468 of the wing's moves in those scenes had a point off the map (`air-D1-*`): the
+bench place is 1,794 from the edge, and no radar saw the bombers along it, so the wing scrambled only after
+they had turned inland. Moving the wing's place to 1,201 from the edge, as `energy` is, changed nothing by itself (2 of
+499, `air-L1-*`). With a radar that sees the edge as well (an Advanced Radar Tower at (3200, 7600)) and the leg along
+the edge long enough to be met there, 79 of 155 moves had a point off the map, every fighter's first among them
+(`air-L2-along2`). That scene, to fly it again: run 2's base with the wing (6.4), Advanced Radar Towers added at
+(6500, 7700) and (3200, 7600), the wing's row at (5580, 6990), and `run/air_raid.py --target 5580,6397 --his
+"corhurc*7@1200,8120>5200,8120>bomb"`.
+
+| sixteen repetitions each | adfb763d (`air-O1-*`) | the mend (`air-N1-*`) |
+|---|---|---|
+| along the edge: seconds from the scramble to the first fighter 1,000 from the place | 8.4 | 3.6 |
+| to half the wing 1,000 from it | 12.4 | 4.8 |
+| to the first hit | 9.1 | 6.9 |
+| the nearest bomber to the target at the first hit | 1,827 | 2,337 |
+| reactors kept | 16 of 16 | 16 of 16 |
+| from the south-east corner (2 of 169 moves off the map): the same four | 3.2, 7.1, 3.8, 1,542 | 3.6, 6.2, 4.6, 1,675 |
+| reactors kept | 11 of 16 | 11 of 16 |
+
+The old build is five seconds late off the loop where the points are off the map and the same where they are not.
+Nothing was lost by it on the bench: the scramble there is 3,500 from the place and 18 seconds before the first
+bomb, and the base has its own anti-air; the game's scramble had ten seconds.
+
+**The host's guard**, flown once: three Hailstorms ordered by a script row to (-600, 1500) flew to x 0 and stopped
+there, and the host's line said `pulled onto the map 3` (`air-G1-guard`). The same row was not flown on the old
+build: that the engine drops such an order rests on the game's 19 of 19 and the old build's fighters above. In
+every batch of the wing's the count was 0: with its own points on the map the wing leaves the host nothing to pull.
+
+**Nothing else moved.** The fifteen raids of 6.4 eight times each, the two recorded runs sixteen times and the six
+scenes of 8.2 on the mend (`air-M1-*`, 190 duels), beside 8.6's final build (`air-F1-*`): the eleven raids that kept
+every reactor 8 of 8 kept it 8 of 8; the line abreast 5 of 8 (F1: 6), the twelve 7 of 8 (6), without anti-air 0 of 8
+(1), aside 0 of 8 (0); run 1 15 of 16 (15), run 2 16 of 16 (15). The first hit came within half a second of F1's in
+every one. The loop: the milling bomber and the scout abeam drew no fighter off it, the scout overhead 4.0 at once
+(3.6), and after his fighters' three scenes the wing was back at 853, 729 and 1,178 from the place (868, 720,
+1,100). The host pulled nothing in any of them (474 minute lines, each 0).
+
+One figure differs, fighters lost on the line abreast, 1.9 of 12 against 0.1: all fifteen in two of the three
+repetitions that lost the reactors, gone two to five seconds after the Advanced Fusion Reactor and last seen within
+830 of a lost reactor, which reads as the blast (F1 lost one fighter in its two such repetitions; without anti-air,
+where the reactors go in nearly every repetition, F1 lost 6.4 of 12 and the mend 4.4). What killed them was not
+looked at beyond the timing and the place. The mend is not in it: flown eight more times with the debug line on
+(`air-M1d-line`), 0 of the wing's 886 moves had a point off the map and the host pulled none, so every order in that
+raid is the order adfb763d would have sent; those eight kept the reactors 6 of 8 and lost no fighter.
+
+**Not done, and open.** No game has flown on the mend. The scouts' ways were not examined: a leg off the map is
+now flown to the edge by the host's guard, on another heading than the one planned, where before it was dropped
+(52 such legs in 8.5's game, 9 in 8.7's). The other senders of the flagship and the bots were not searched for
+places off the map; the count in the minute's line is there to find them. The protocol's fingerprint changes with
+`messages.rs`, as it already had on this branch: a merge still needs the shim installed again.

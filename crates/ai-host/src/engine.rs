@@ -266,8 +266,8 @@ impl Engine {
         self.metal_spots = metal_spots.clone();
         let map = MapInfo {
             name: self.string(call!(self, Map_getName())),
-            width: call!(self, Map_getWidth()) as f32 * SQUARE_SIZE,
-            height: call!(self, Map_getHeight()) as f32 * SQUARE_SIZE,
+            width: self.map_size().0,
+            height: self.map_size().1,
             wind_min: call!(self, Map_getMinWind()),
             wind_max: call!(self, Map_getMaxWind()),
             tidal: call!(self, Map_getTidalStrength()),
@@ -1045,6 +1045,11 @@ impl Engine {
     /// The ground's height at a place now, craters and all ([`Command::Probe`]).
     pub fn elevation(&self, x: f32, z: f32) -> f32 {
         call!(self, Map_getElevationAt(x, z))
+    }
+
+    /// The map's width and height in elmos.
+    pub fn map_size(&self) -> (f32, f32) {
+        (call!(self, Map_getWidth()) as f32 * SQUARE_SIZE, call!(self, Map_getHeight()) as f32 * SQUARE_SIZE)
     }
 
     fn on_the_ground(&self, at: Vec3) -> [f32; 3] {
