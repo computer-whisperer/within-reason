@@ -1,7 +1,7 @@
 # The unit glossary as a sheet
 
 `units.csv` is the unit glossary laid out for a spreadsheet: one row per unit of the three factions that a
-commander's build tree reaches (571 on game source 54199a0d, the checkout `run/unit_stats.py` reads), with everything
+commander's build tree reaches (574 on game source ad135b9c, test-32018, the checkout `run/unit_stats.py` reads; exported again 2026-11-19), with everything
 the repo knows about the unit in the first thirty columns and five empty columns for experienced players to fill.
 `run/glossary_sheet.py` writes it; regenerate after the glossary changes and re-import, or upload once and let the
 sheet drift from the file (the import matches rows on the `unit` column, so added rows and reordering do not matter).

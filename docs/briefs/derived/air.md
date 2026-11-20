@@ -64,7 +64,7 @@ at 60 metal a second is eleven seconds of income.
   the air as its way to his energy, his builders and his commander; D-surprise-weapons works the Banshee snipe and its
   clock, and the same clock governs a bomber wave: it pays where his fighters and his field anti-air do not yet
   stand, and is a waste where they do.
-- *The Shuriken* (Cortex's stun drone: 58 metal, 83 health, speed 280; L-gecko-air-details: "some of the strongest
+- *The Shuriken* (Cortex's stun drone: 58 metal, 83 health, speed 270; L-gecko-air-details: "some of the strongest
   units in the game"). Each shot is 600 of stun at 220 every 1.2 seconds; a unit is stunned while the stun on it passes
   its health, and wakes at most 7 seconds after the last shot. One shot stuns a Pawn (370), a Grunt (280) or a Thistle
   (335); two a Blitz (730), a construction bot or a light laser turret (620); three a Beamer (1,430); four a Stout

@@ -60,7 +60,7 @@ energy a second against the fusion's 4.5); then advanced converters by the handf
 a second into 10.3 metal. One advanced fusion feeds five: 11,600 metal for +51.7 metal a second, repaid in 3.7
 minutes, against 4.9 minutes for a fusion with its converter and a quarter of the frames; the next engine is paid from
 the last one's output, and a seat at 110 a second adds one every two minutes, each adding half again to its income.
-The advanced fusion's frame is the catch: build time 312,500, nine minutes for two advanced constructors alone, 143 s
+The advanced fusion's frame is the catch: build time 313,000, nine minutes for two advanced constructors alone, 143 s
 with eight construction turrets beside them drawing 68 metal and 480 energy a second, so the fusions stand first, the
 site is where the turrets can stand round it, and it stands alone under anti-air, since it levels everything near it
 when it dies and bombers come for it. Each engine brings its own store (a fusion 2,500 energy, the advanced fusion

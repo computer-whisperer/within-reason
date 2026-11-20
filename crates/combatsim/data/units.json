@@ -8,7 +8,7 @@
 "legsnapper": "amphibious screwdrive bomb: drives into the enemy and self-destructs; the sim has no suicide attack"
 },
 "_note": "Post-processed for the arena's default mod options; see the tool's docstring.",
-"_source": "Beyond-All-Reason units/**/*.lua at 54199a0d3f9a3aadd18cc731a44f6bba6e0f92aa 2026-09-19, by crates/combatsim/tools/extract_units.py",
+"_source": "Beyond-All-Reason units/**/*.lua at ad135b9c0d7dba3cc16631725703a634bd701777 2026-11-19, by crates/combatsim/tools/extract_units.py",
 "units": {
 "armaak": {
 "air": false,
@@ -54,7 +54,7 @@
 "water_only": false
 },
 {
-"acceleration": 400,
+"acceleration": 300,
 "accuracy": 0.0,
 "aoe": 24,
 "burst": 1,
@@ -74,10 +74,10 @@
 "range": 880,
 "reload": 0.7,
 "spray": 0.0,
-"start_velocity": 100,
+"start_velocity": 300,
 "stockpile": false,
 "tracks": true,
-"velocity": 800,
+"velocity": 900,
 "water_only": false
 }
 ]
@@ -288,7 +288,7 @@
 "armor": "standard",
 "builder": false,
 "energy": 69000,
-"health": 8300,
+"health": 7900,
 "max_depth": 0.0,
 "max_slope": 0,
 "metal": 9700,
@@ -497,7 +497,7 @@
 "top": 56.0,
 "weapons": [
 {
-"acceleration": 150,
+"acceleration": 180,
 "accuracy": 0.0,
 "aoe": 420,
 "burst": 1,
@@ -741,7 +741,7 @@
 "top": 35.5,
 "weapons": [
 {
-"acceleration": 150,
+"acceleration": 180,
 "accuracy": 0.0,
 "aoe": 420,
 "burst": 1,
@@ -1070,7 +1070,7 @@
 "water_only": false
 },
 {
-"acceleration": 200,
+"acceleration": 250,
 "accuracy": 0.0,
 "aoe": 96,
 "burst": 1,
@@ -1080,21 +1080,21 @@
 "default": 900,
 "subs": 500
 },
-"edge": 0.15,
+"edge": 0.5,
 "energy_per_shot": 0.0,
 "kind": "StarburstLauncher",
 "lead_limit": -1.0,
-"only_targets": "NOTSUB",
+"only_targets": "SURFACE",
 "paralyzer": false,
 "predict_boost": 0.0,
 "projectiles": 1,
 "range": 860,
-"reload": 6.866666666666666,
+"reload": 7.0,
 "spray": 0.0,
 "start_velocity": 10,
 "stockpile": false,
 "tracks": true,
-"velocity": 2000,
+"velocity": 510,
 "water_only": false
 },
 {
@@ -1213,7 +1213,7 @@
 "metal": 190,
 "mid": 39.0,
 "radius": 16.5,
-"sight": 475,
+"sight": 500,
 "speed": 0.0,
 "tech": 1,
 "top": 81.5,
@@ -2274,7 +2274,7 @@
 "top": 25.0,
 "weapons": [
 {
-"acceleration": 150,
+"acceleration": 155,
 "accuracy": 0.0,
 "aoe": 312,
 "burst": 1,
@@ -2297,7 +2297,7 @@
 "start_velocity": 0.0,
 "stockpile": true,
 "tracks": false,
-"velocity": 1200,
+"velocity": 1000,
 "water_only": false
 }
 ]
@@ -3210,7 +3210,7 @@
 "armor": "standard",
 "builder": false,
 "energy": 1000,
-"health": 110,
+"health": 180,
 "max_depth": 0.0,
 "max_slope": 0,
 "metal": 130,
@@ -3585,7 +3585,7 @@
 "metal": 440,
 "mid": 26.0,
 "radius": 18.0,
-"sight": 494,
+"sight": 500,
 "speed": 0.0,
 "tech": 1,
 "top": 81.0,
@@ -3781,33 +3781,6 @@
 "tech": 1,
 "top": 27.0,
 "weapons": [
-{
-"acceleration": 101,
-"accuracy": 0.0,
-"aoe": 48,
-"burst": 1,
-"burst_rate": 0.1,
-"command_fire": false,
-"damage": {
-"default": 0
-},
-"edge": 0.15,
-"energy_per_shot": 0.0,
-"kind": "Cannon",
-"lead_limit": -1.0,
-"only_targets": "VTOL",
-"paralyzer": false,
-"predict_boost": 0.0,
-"projectiles": 1,
-"range": 800,
-"reload": 0.5,
-"spray": 0.0,
-"start_velocity": 450,
-"stockpile": false,
-"tracks": false,
-"velocity": 650,
-"water_only": false
-},
 {
 "acceleration": 141,
 "accuracy": 0.0,
@@ -4167,7 +4140,7 @@
 "metal": 85,
 "mid": 35.0,
 "radius": 16.0,
-"sight": 494,
+"sight": 500,
 "speed": 0.0,
 "tech": 1,
 "top": 72.5,
@@ -4514,11 +4487,11 @@
 "max_slope": 28,
 "metal": 320,
 "mid": 5.0,
-"radius": 18.5,
+"radius": 22.0,
 "sight": 330,
 "speed": 60,
 "tech": 2,
-"top": 15.0,
+"top": 16.0,
 "weapons": [
 {
 "acceleration": 0.0,
@@ -4646,8 +4619,8 @@
 "air": false,
 "armor": "standard",
 "builder": false,
-"energy": 6500,
-"health": 1220,
+"energy": 10000,
+"health": 1300,
 "max_depth": 20.0,
 "max_slope": 28,
 "metal": 920,
@@ -4659,18 +4632,18 @@
 "top": 27.0,
 "weapons": [
 {
-"acceleration": 100,
+"acceleration": 80,
 "accuracy": 0.0,
-"aoe": 150,
+"aoe": 160,
 "burst": 1,
 "burst_rate": 0.1,
 "command_fire": false,
 "damage": {
-"commanders": 625,
-"default": 1900,
+"commanders": 1000,
+"default": 2000,
 "subs": 500
 },
-"edge": 0.65,
+"edge": 0.5,
 "energy_per_shot": 0.0,
 "kind": "StarburstLauncher",
 "lead_limit": -1.0,
@@ -4684,7 +4657,7 @@
 "start_velocity": 0.0,
 "stockpile": false,
 "tracks": false,
-"velocity": 380,
+"velocity": 550,
 "water_only": false
 }
 ]
@@ -4733,7 +4706,7 @@
 "default": 300,
 "subs": 150
 },
-"edge": 0.15,
+"edge": 0.5,
 "energy_per_shot": 0.0,
 "kind": "StarburstLauncher",
 "lead_limit": -1.0,
@@ -4747,7 +4720,7 @@
 "start_velocity": 0.0,
 "stockpile": false,
 "tracks": false,
-"velocity": 600,
+"velocity": 400,
 "water_only": false
 }
 ]
@@ -5919,7 +5892,7 @@
 "top": 19.5,
 "weapons": [
 {
-"acceleration": 150,
+"acceleration": 180,
 "accuracy": 0.0,
 "aoe": 420,
 "burst": 1,
@@ -6257,11 +6230,11 @@
 "max_slope": 0,
 "metal": 1200,
 "mid": 33.0,
-"radius": 20.0,
+"radius": 37.5,
 "sight": 455,
 "speed": 0.0,
 "tech": 2,
-"top": 55.5,
+"top": 71.0,
 "weapons": [
 {
 "acceleration": 0.0,
@@ -6761,12 +6734,12 @@
 "max_depth": 20.0,
 "max_slope": 41,
 "metal": 9000,
-"mid": 33.0,
-"radius": 29.0,
+"mid": 20.4,
+"radius": 39.0,
 "sight": 600,
 "speed": 54,
 "tech": 3,
-"top": 50.0,
+"top": 37.9,
 "weapons": [
 {
 "acceleration": 0.0,
@@ -6797,7 +6770,7 @@
 "water_only": false
 },
 {
-"acceleration": 75,
+"acceleration": 100,
 "accuracy": 0.0,
 "aoe": 196,
 "burst": 1,
@@ -7289,11 +7262,11 @@
 "max_slope": 0,
 "metal": 70000,
 "mid": 50.0,
-"radius": 45.0,
+"radius": 49.0,
 "sight": 700,
 "speed": 0.0,
 "tech": 2,
-"top": 122.5,
+"top": 122.75,
 "weapons": [
 {
 "acceleration": 0.0,
@@ -7685,7 +7658,7 @@
 "armor": "standard",
 "builder": false,
 "energy": 48000,
-"health": 9800,
+"health": 9400,
 "max_depth": 0.0,
 "max_slope": 0,
 "metal": 9700,
@@ -7956,7 +7929,7 @@
 "top": 36.0,
 "weapons": [
 {
-"acceleration": 150,
+"acceleration": 180,
 "accuracy": 0.0,
 "aoe": 420,
 "burst": 1,
@@ -8805,7 +8778,7 @@
 "mid": 0.0,
 "radius": 8.0,
 "sight": 430,
-"speed": 280.5,
+"speed": 270,
 "tech": 1,
 "top": 5.0,
 "weapons": [
@@ -9127,33 +9100,6 @@
 "tech": 1,
 "top": 28.1,
 "weapons": [
-{
-"acceleration": 101,
-"accuracy": 0.0,
-"aoe": 48,
-"burst": 1,
-"burst_rate": 0.1,
-"command_fire": false,
-"damage": {
-"default": 0
-},
-"edge": 0.15,
-"energy_per_shot": 0.0,
-"kind": "Cannon",
-"lead_limit": -1.0,
-"only_targets": "VTOL",
-"paralyzer": false,
-"predict_boost": 0.0,
-"projectiles": 1,
-"range": 800,
-"reload": 0.5,
-"spray": 0.0,
-"start_velocity": 450,
-"stockpile": false,
-"tracks": false,
-"velocity": 650,
-"water_only": false
-},
 {
 "acceleration": 141,
 "accuracy": 0.0,
@@ -10109,7 +10055,7 @@
 "metal": 240,
 "mid": 30.0,
 "radius": 20.0,
-"sight": 455,
+"sight": 500,
 "speed": 0.0,
 "tech": 1,
 "top": 42.5,
@@ -10504,7 +10450,7 @@
 "top": 32.0,
 "weapons": [
 {
-"acceleration": 150,
+"acceleration": 180,
 "accuracy": 0.0,
 "aoe": 420,
 "burst": 1,
@@ -10616,7 +10562,7 @@
 "armor": "standard",
 "builder": false,
 "energy": 1000,
-"health": 114,
+"health": 180,
 "max_depth": 0.0,
 "max_slope": 0,
 "metal": 130,
@@ -10768,10 +10714,10 @@
 "armor": "standard",
 "builder": true,
 "energy": 62000,
-"health": 17800,
+"health": 18000,
 "max_depth": 0.0,
 "max_slope": 0,
-"metal": 8400,
+"metal": 8000,
 "mid": 36.0,
 "radius": 98.0,
 "sight": 273,
@@ -10807,11 +10753,11 @@
 "max_slope": 105,
 "metal": 220,
 "mid": 3.0,
-"radius": 16.5,
+"radius": 17.8,
 "sight": 500,
 "speed": 58.5,
 "tech": 1,
-"top": 15.5,
+"top": 17.4,
 "weapons": [
 {
 "acceleration": 0.0,
@@ -11053,7 +10999,7 @@
 "metal": 195,
 "mid": 37.0,
 "radius": 16.0,
-"sight": 475,
+"sight": 500,
 "speed": 0.0,
 "tech": 1,
 "top": 88.0,
@@ -11129,7 +11075,7 @@
 "metal": 480,
 "mid": 48.0,
 "radius": 19.0,
-"sight": 455,
+"sight": 500,
 "speed": 0.0,
 "tech": 1,
 "top": 85.0,
@@ -11186,7 +11132,7 @@
 "air": false,
 "armor": "standard",
 "builder": false,
-"energy": 5800,
+"energy": 6500,
 "health": 610,
 "max_depth": 20.0,
 "max_slope": 105,
@@ -11199,16 +11145,16 @@
 "top": 34.5,
 "weapons": [
 {
-"acceleration": 100,
+"acceleration": 85,
 "accuracy": 0.0,
 "aoe": 70,
 "burst": 1,
 "burst_rate": 0.1,
 "command_fire": false,
 "damage": {
-"default": 800
+"default": 850
 },
-"edge": 0.61,
+"edge": 0.5,
 "energy_per_shot": 0.0,
 "kind": "StarburstLauncher",
 "lead_limit": -1.0,
@@ -11222,7 +11168,7 @@
 "start_velocity": 0.0,
 "stockpile": false,
 "tracks": false,
-"velocity": 800,
+"velocity": 560,
 "water_only": false
 }
 ]
@@ -11716,16 +11662,16 @@
 "water_only": false
 },
 {
-"acceleration": 230,
+"acceleration": 250,
 "accuracy": 0.0,
 "aoe": 200,
 "burst": 1,
 "burst_rate": 0.1,
 "command_fire": false,
 "damage": {
-"default": 800
+"default": 1000
 },
-"edge": 0.85,
+"edge": 0.5,
 "energy_per_shot": 0.0,
 "kind": "StarburstLauncher",
 "lead_limit": -1.0,
@@ -11739,7 +11685,7 @@
 "start_velocity": 10,
 "stockpile": false,
 "tracks": true,
-"velocity": 2600,
+"velocity": 510,
 "water_only": false
 },
 {
@@ -11954,7 +11900,7 @@
 "metal": 90,
 "mid": 32.0,
 "radius": 16.0,
-"sight": 494,
+"sight": 500,
 "speed": 0.0,
 "tech": 1,
 "top": 67.0,
@@ -12008,7 +11954,7 @@
 "top": 38.0,
 "weapons": [
 {
-"acceleration": 150,
+"acceleration": 180,
 "accuracy": 0.0,
 "aoe": 420,
 "burst": 1,
@@ -12202,7 +12148,7 @@
 "metal": 290,
 "mid": 10.0,
 "radius": 8.0,
-"sight": 422,
+"sight": 440,
 "speed": 0.0,
 "tech": 1,
 "top": 10.0,
@@ -12346,7 +12292,7 @@
 "top": 15.0,
 "weapons": [
 {
-"acceleration": 70,
+"acceleration": 95,
 "accuracy": 0.0,
 "aoe": 80,
 "burst": 1,
@@ -12356,7 +12302,7 @@
 "default": 550,
 "subs": 250
 },
-"edge": 0.15,
+"edge": 0.5,
 "energy_per_shot": 0.0,
 "kind": "StarburstLauncher",
 "lead_limit": -1.0,
@@ -12370,7 +12316,7 @@
 "start_velocity": 0.0,
 "stockpile": false,
 "tracks": false,
-"velocity": 480,
+"velocity": 400,
 "water_only": false
 }
 ]
@@ -13215,11 +13161,11 @@
 "max_slope": 28,
 "metal": 235,
 "mid": 2.0,
-"radius": 16.0,
+"radius": 18.5,
 "sight": 350,
 "speed": 72,
 "tech": 1,
-"top": 20.0,
+"top": 19.5,
 "weapons": [
 {
 "acceleration": 0.0,
@@ -13261,11 +13207,11 @@
 "max_slope": 28,
 "metal": 690,
 "mid": 10.0,
-"radius": 18.0,
-"sight": 462,
+"radius": 20.75,
+"sight": 410,
 "speed": 69,
 "tech": 2,
-"top": 21.0,
+"top": 24.0,
 "weapons": [
 {
 "acceleration": 0.0,
@@ -13275,8 +13221,8 @@
 "burst_rate": 0.1,
 "command_fire": false,
 "damage": {
-"default": 109,
-"vtol": 35
+"default": 120,
+"vtol": 24
 },
 "edge": 0.15,
 "energy_per_shot": 0.0,
@@ -13287,12 +13233,12 @@
 "predict_boost": 0.5,
 "projectiles": 1,
 "range": 410,
-"reload": 0.7,
+"reload": 0.8,
 "spray": 0.0,
 "start_velocity": 0.0,
 "stockpile": false,
 "tracks": false,
-"velocity": 380,
+"velocity": 330,
 "water_only": false
 }
 ]
@@ -13442,11 +13388,11 @@
 "max_slope": 105,
 "metal": 350,
 "mid": 10.0,
-"radius": 15.5,
+"radius": 16.98,
 "sight": 385,
 "speed": 72,
 "tech": 2,
-"top": 21.5,
+"top": 18.5,
 "weapons": [
 {
 "acceleration": 0.0,
@@ -13911,7 +13857,7 @@
 "health": 9400,
 "max_depth": 5000.0,
 "max_slope": 105,
-"metal": 1600,
+"metal": 1700,
 "mid": 32.0,
 "radius": 30.5,
 "sight": 520,
@@ -13922,7 +13868,7 @@
 {
 "acceleration": 0.0,
 "accuracy": 0.0,
-"aoe": 176,
+"aoe": 160,
 "burst": 1,
 "burst_rate": 0.1,
 "command_fire": false,
@@ -13949,7 +13895,7 @@
 "water_only": false
 },
 {
-"acceleration": 100,
+"acceleration": 200,
 "accuracy": 0.0,
 "aoe": 60,
 "burst": 1,
@@ -13958,7 +13904,7 @@
 "damage": {
 "default": 750
 },
-"edge": 0.65,
+"edge": 0.5,
 "energy_per_shot": 0.0,
 "kind": "StarburstLauncher",
 "lead_limit": -1.0,
@@ -13972,7 +13918,7 @@
 "start_velocity": 0.0,
 "stockpile": false,
 "tracks": false,
-"velocity": 800,
+"velocity": 500,
 "water_only": false
 }
 ]
@@ -14867,17 +14813,17 @@
 "top": 36.5,
 "weapons": [
 {
-"acceleration": 150,
+"acceleration": 155,
 "accuracy": 0.0,
 "aoe": 380,
 "burst": 1,
 "burst_rate": 0.1,
 "command_fire": true,
 "damage": {
-"commanders": 750,
+"commanders": 1000,
 "default": 4000
 },
-"edge": 0.55,
+"edge": 0.5,
 "energy_per_shot": 17437,
 "kind": "StarburstLauncher",
 "lead_limit": -1.0,
@@ -15263,8 +15209,8 @@
 "air": false,
 "armor": "standard",
 "builder": false,
-"energy": 6700,
-"health": 1390,
+"energy": 9000,
+"health": 1400,
 "max_depth": 20.0,
 "max_slope": 28,
 "metal": 880,
@@ -15276,18 +15222,18 @@
 "top": 24.0,
 "weapons": [
 {
-"acceleration": 100,
+"acceleration": 87,
 "accuracy": 0.0,
 "aoe": 150,
 "burst": 1,
 "burst_rate": 0.1,
 "command_fire": false,
 "damage": {
-"commanders": 810,
+"commanders": 850,
 "default": 1700,
 "subs": 600
 },
-"edge": 0.65,
+"edge": 0.5,
 "energy_per_shot": 0.0,
 "kind": "StarburstLauncher",
 "lead_limit": -1.0,
@@ -15296,12 +15242,12 @@
 "predict_boost": 0.0,
 "projectiles": 1,
 "range": 1310,
-"reload": 16.0,
+"reload": 15.0,
 "spray": 0.0,
 "start_velocity": 0.0,
 "stockpile": false,
 "tracks": false,
-"velocity": 415,
+"velocity": 570,
 "water_only": false
 }
 ]
@@ -15437,7 +15383,7 @@
 "armor": "standard",
 "builder": false,
 "energy": 40000,
-"health": 3650,
+"health": 3300,
 "max_depth": 0.0,
 "max_slope": 0,
 "metal": 1500,
@@ -15449,7 +15395,7 @@
 "top": 36.0,
 "weapons": [
 {
-"acceleration": 150,
+"acceleration": 180,
 "accuracy": 0.0,
 "aoe": 420,
 "burst": 1,
@@ -15488,7 +15434,7 @@
 "metal": 330,
 "mid": 4.55,
 "radius": 8.0,
-"sight": 383.5,
+"sight": 430,
 "speed": 203,
 "tech": 2,
 "top": 7.34,
@@ -15522,7 +15468,7 @@
 "metal": 410,
 "mid": 16.1,
 "radius": 15.0,
-"sight": 318.5,
+"sight": 380,
 "speed": 36.0,
 "tech": 2,
 "top": 36.1,
@@ -15614,7 +15560,7 @@
 "metal": 530,
 "mid": 13.4,
 "radius": 23.75,
-"sight": 295.10001,
+"sight": 330,
 "speed": 55.5,
 "tech": 2,
 "top": 25.4,
@@ -15830,7 +15776,7 @@
 "armor": "standard",
 "builder": false,
 "energy": 69000,
-"health": 9800,
+"health": 9500,
 "max_depth": 0.0,
 "max_slope": 0,
 "metal": 10500,
@@ -15909,17 +15855,17 @@
 "air": false,
 "armor": "standard",
 "builder": false,
-"energy": 19000,
-"health": 7700,
+"energy": 15000,
+"health": 5700,
 "max_depth": 20.0,
 "max_slope": 28,
-"metal": 1250,
-"mid": 16.09,
-"radius": 23.0,
+"metal": 1050,
+"mid": 14.5,
+"radius": 24.5,
 "sight": 450,
 "speed": 52,
 "tech": 2,
-"top": 28.59,
+"top": 26.5,
 "weapons": [
 {
 "acceleration": 0.0,
@@ -15929,11 +15875,11 @@
 "burst_rate": 0.1,
 "command_fire": false,
 "damage": {
-"default": 33,
-"vtol": 10
+"default": 25,
+"vtol": 7
 },
 "edge": 0.15,
-"energy_per_shot": 10,
+"energy_per_shot": 5,
 "kind": "BeamLaser",
 "lead_limit": -1.0,
 "only_targets": "SURFACE",
@@ -16012,7 +15958,7 @@
 "max_slope": 28,
 "metal": 460,
 "mid": 15.05,
-"radius": 18.5,
+"radius": 21.5,
 "sight": 330,
 "speed": 44,
 "tech": 2,
@@ -16149,11 +16095,11 @@
 "max_slope": 105,
 "metal": 200,
 "mid": 10.62,
-"radius": 15.5,
+"radius": 16.75,
 "sight": 500,
 "speed": 63.0,
 "tech": 1,
-"top": 17.12,
+"top": 17.62,
 "weapons": [
 {
 "acceleration": 0.0,
@@ -16468,7 +16414,7 @@
 },
 "leganavyaaship": {
 "air": false,
-"armor": "standard",
+"armor": "hvyboats",
 "builder": false,
 "energy": 12000,
 "health": 3900,
@@ -16609,7 +16555,7 @@
 "water_only": false
 },
 {
-"acceleration": 150,
+"acceleration": 180,
 "accuracy": 0.0,
 "aoe": 420,
 "burst": 1,
@@ -16713,7 +16659,7 @@
 },
 "leganavyartyship": {
 "air": false,
-"armor": "standard",
+"armor": "hvyboats",
 "builder": false,
 "energy": 125000,
 "health": 22000,
@@ -16849,7 +16795,7 @@
 },
 "leganavybattleship": {
 "air": false,
-"armor": "standard",
+"armor": "hvyboats",
 "builder": false,
 "energy": 21000,
 "health": 10350,
@@ -16857,11 +16803,11 @@
 "max_slope": 0,
 "metal": 2900,
 "mid": 15.0,
-"radius": 42.0,
+"radius": 43.75,
 "sight": 600,
 "speed": 25,
 "tech": 2,
-"top": 24.0,
+"top": 40.8,
 "weapons": [
 {
 "acceleration": 0.0,
@@ -17043,7 +16989,7 @@
 },
 "leganavycruiser": {
 "air": false,
-"armor": "standard",
+"armor": "hvyboats",
 "builder": false,
 "energy": 10800,
 "health": 5600,
@@ -17132,7 +17078,7 @@
 },
 "leganavyflagship": {
 "air": false,
-"armor": "standard",
+"armor": "hvyboats",
 "builder": false,
 "energy": 240000,
 "health": 48000,
@@ -17394,7 +17340,7 @@
 },
 "leganavymissileship": {
 "air": false,
-"armor": "standard",
+"armor": "hvyboats",
 "builder": false,
 "energy": 10000,
 "health": 3350,
@@ -17629,7 +17575,7 @@
 "mid": 15.92,
 "radius": 14.5,
 "sight": 925,
-"speed": 45,
+"speed": 38,
 "tech": 2,
 "top": 31.92,
 "weapons": []
@@ -17831,7 +17777,7 @@
 "top": 33.54,
 "weapons": [
 {
-"acceleration": 150,
+"acceleration": 180,
 "accuracy": 0.0,
 "aoe": 420,
 "burst": 1,
@@ -17914,8 +17860,8 @@
 "air": false,
 "armor": "standard",
 "builder": false,
-"energy": 6500,
-"health": 1220,
+"energy": 10000,
+"health": 1300,
 "max_depth": 20.0,
 "max_slope": 28,
 "metal": 920,
@@ -17927,18 +17873,18 @@
 "top": 24.85,
 "weapons": [
 {
-"acceleration": 100,
+"acceleration": 80,
 "accuracy": 0.0,
-"aoe": 150,
+"aoe": 160,
 "burst": 1,
 "burst_rate": 0.1,
 "command_fire": false,
 "damage": {
-"commanders": 625,
-"default": 1900,
+"commanders": 1000,
+"default": 2000,
 "subs": 500
 },
-"edge": 0.65,
+"edge": 0.5,
 "energy_per_shot": 0.0,
 "kind": "StarburstLauncher",
 "lead_limit": -1.0,
@@ -17952,7 +17898,7 @@
 "start_velocity": 0.0,
 "stockpile": false,
 "tracks": false,
-"velocity": 380,
+"velocity": 550,
 "water_only": false
 }
 ]
@@ -18106,11 +18052,11 @@
 "max_slope": 0,
 "metal": 4200,
 "mid": 68.78,
-"radius": 34.0,
+"radius": 39.5,
 "sight": 780,
 "speed": 0.0,
 "tech": 2,
-"top": 148.78,
+"top": 143.03,
 "weapons": [
 {
 "acceleration": 0.0,
@@ -18199,7 +18145,7 @@
 "metal": 100,
 "mid": 4.59,
 "radius": 12.0,
-"sight": 351,
+"sight": 430,
 "speed": 139,
 "tech": 1,
 "top": 11.69,
@@ -18215,11 +18161,11 @@
 "max_slope": 41,
 "metal": 550,
 "mid": 10.0,
-"radius": 21.0,
+"radius": 21.25,
 "sight": 450,
 "speed": 51,
 "tech": 1,
-"top": 17.0,
+"top": 17.5,
 "weapons": [
 {
 "acceleration": 0.0,
@@ -18371,7 +18317,7 @@
 "metal": 100,
 "mid": 13.0,
 "radius": 11.0,
-"sight": 299,
+"sight": 380,
 "speed": 39,
 "tech": 1,
 "top": 26.5,
@@ -18533,7 +18479,8 @@
 "damage": {
 "commanders": 0,
 "default": 99999,
-"scavboss": 1000
+"raptorqueen": 10,
+"scavboss": 10
 },
 "edge": 0.15,
 "energy_per_shot": 500,
@@ -18638,7 +18585,7 @@
 "metal": 125,
 "mid": 8.0,
 "radius": 19.25,
-"sight": 260,
+"sight": 330,
 "speed": 57.0,
 "tech": 1,
 "top": 18.5,
@@ -20228,7 +20175,7 @@
 "armor": "standard",
 "builder": false,
 "energy": 1000,
-"health": 110,
+"health": 180,
 "max_depth": 0.0,
 "max_slope": 0,
 "metal": 130,
@@ -20514,8 +20461,8 @@
 "burst_rate": 0.1,
 "command_fire": false,
 "damage": {
-"default": 15,
-"vtol": 6
+"default": 10,
+"vtol": 4
 },
 "edge": 0.85,
 "energy_per_shot": 0.0,
@@ -20526,7 +20473,7 @@
 "predict_boost": 1,
 "projectiles": 5,
 "range": 211,
-"reload": 2.1,
+"reload": 1.2,
 "spray": 1500,
 "start_velocity": 0.0,
 "stockpile": false,
@@ -20541,7 +20488,7 @@
 "armor": "standard",
 "builder": false,
 "energy": 2400,
-"health": 800,
+"health": 1000,
 "max_depth": 20.0,
 "max_slope": 28,
 "metal": 160,
@@ -20560,8 +20507,8 @@
 "burst_rate": 0.1,
 "command_fire": false,
 "damage": {
-"default": 160,
-"vtol": 25
+"default": 135,
+"vtol": 20
 },
 "edge": 1.0,
 "energy_per_shot": 0.0,
@@ -21169,7 +21116,7 @@
 "metal": 70,
 "mid": 32.0,
 "radius": 16.0,
-"sight": 494,
+"sight": 500,
 "speed": 0.0,
 "tech": 1,
 "top": 55.5,
@@ -21395,7 +21342,7 @@
 "paralyzer": false,
 "predict_boost": 1,
 "projectiles": 1,
-"range": 1125,
+"range": 1200,
 "reload": 1.8,
 "spray": 200,
 "start_velocity": 0.0,
@@ -21559,7 +21506,7 @@
 "top": 18.0,
 "weapons": [
 {
-"acceleration": 70,
+"acceleration": 100,
 "accuracy": 0.0,
 "aoe": 80,
 "burst": 1,
@@ -21569,7 +21516,7 @@
 "default": 400,
 "subs": 175
 },
-"edge": 0.15,
+"edge": 0.5,
 "energy_per_shot": 0.0,
 "kind": "StarburstLauncher",
 "lead_limit": -1.0,
@@ -21583,7 +21530,7 @@
 "start_velocity": 0.0,
 "stockpile": false,
 "tracks": false,
-"velocity": 480,
+"velocity": 400,
 "water_only": false
 }
 ]
@@ -21900,7 +21847,7 @@
 "health": 970,
 "max_depth": 20.0,
 "max_slope": 28,
-"metal": 250,
+"metal": 210,
 "mid": 9.25,
 "radius": 18.0,
 "sight": 500,
@@ -21916,8 +21863,8 @@
 "burst_rate": 0.13333333333333333,
 "command_fire": false,
 "damage": {
-"default": 120,
-"vtol": 30
+"default": 72,
+"vtol": 20
 },
 "edge": 0.15,
 "energy_per_shot": 0.0,
@@ -21928,7 +21875,7 @@
 "predict_boost": 0.0,
 "projectiles": 1,
 "range": 240,
-"reload": 2.0,
+"reload": 1.2,
 "spray": 0.0,
 "start_velocity": 0.0,
 "stockpile": false,
@@ -22259,7 +22206,7 @@
 },
 "edge": 0.25,
 "energy_per_shot": 0.0,
-"kind": "MissileLauncher",
+"kind": "TorpedoLauncher",
 "lead_limit": -1.0,
 "only_targets": "NOTHOVER",
 "paralyzer": false,
@@ -22441,7 +22388,7 @@
 "metal": 150,
 "mid": 11.33,
 "radius": 15.75,
-"sight": 260,
+"sight": 330,
 "speed": 43.5,
 "tech": 1,
 "top": 18.33,
@@ -22514,7 +22461,7 @@
 "accuracy": 0.0,
 "aoe": 121,
 "burst": 5,
-"burst_rate": 0.4,
+"burst_rate": 0.26666666666666666,
 "command_fire": false,
 "damage": {
 "default": 0,
@@ -22703,7 +22650,7 @@
 "top": 67.0,
 "weapons": [
 {
-"acceleration": 150,
+"acceleration": 180,
 "accuracy": 0.0,
 "aoe": 420,
 "burst": 1,
@@ -22952,7 +22899,8 @@
 "burst_rate": 0.1,
 "command_fire": false,
 "damage": {
-"default": 60
+"default": 60,
+"vtol": 12
 },
 "edge": 1.0,
 "energy_per_shot": 0.0,
@@ -22984,7 +22932,7 @@
 "metal": 470,
 "mid": 21.11,
 "radius": 16.5,
-"sight": 350,
+"sight": 380,
 "speed": 44,
 "tech": 2,
 "top": 39.61,
@@ -23355,7 +23303,7 @@
 "mid": -0.0,
 "radius": 12.0,
 "sight": 535,
-"speed": 273,
+"speed": 220,
 "tech": 1,
 "top": 8.0,
 "weapons": [
@@ -23567,7 +23515,7 @@
 "metal": 550,
 "mid": 12.0,
 "radius": 26.0,
-"sight": 430,
+"sight": 520,
 "speed": 160,
 "tech": 2,
 "top": 19.5,
@@ -23890,7 +23838,7 @@
 "air": false,
 "armor": "standard",
 "builder": true,
-"energy": 1650,
+"energy": 1550,
 "health": 3000,
 "max_depth": 0.0,
 "max_slope": 0,

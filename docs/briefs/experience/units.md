@@ -122,7 +122,7 @@ do not. The tier-2 construction turret is a lobby option ("Extra Units Pack") no
 
 The power a project can use is set by what you can spend on it: its build time, times the metal a second you give
 it, over its metal; beyond that it stalls (the store empty, everything on it slows in proportion). Armada's advanced
-fusion (9,700 metal, 69,000 energy, build time 312,500) at 100 metal a second: about 3,200 power, 97 s, 710 energy a
+fusion (9,700 metal, 69,000 energy, build time 313,000) at 100 metal a second: about 3,200 power, 97 s, 710 energy a
 second; at 50 metal a second half the power in twice the time. The fusion (3,350 / 18,000 / 54,000) at 50 a second:
 810 power, 67 s. The advanced plant (2,600 / 14,000 / 27,000) at 30 a second: 310 power (an advanced constructor and
 a turret), 87 s. A ring of turrets is built once and serves what stands within its 400; mobile power moves to the
@@ -157,7 +157,7 @@ drones at 15 metal each) and a few tier-2 units spawn their own drones, which ap
 |---|---|---|---|
 | Goblin `leggob` | 30 / 200 / 75 / 261, two 12-damage lasers per 0.9 s; the cheap swarm unit | Wheelie `legscout` | 23 / 75 / 160 / 169, scout |
 | Satyr `leglob` | 60 / 550 / 51 / 400, plasma 75 per 2.5 s; the Mace's place at under half the metal | Alaris `leghades` | 65 / 425 / 99 / 211, raider (the Blitz's place at 60 % of its metal) |
-| Phobos `legcen` | 140 / 840 / 90 / 180, two 75-damage gauss shots per 1.4 s; fast assault | Helios `leghelios` | 160 / 800 / 75 / 320, heat-ray skirmisher |
+| Phobos `legcen` | 140 / 840 / 90 / 180, two 75-damage gauss shots per 1.4 s; fast assault | Helios `leghelios` | 160 / 1000 / 75 / 320, heat-ray skirmisher |
 | Ballista `legbal` | 160 / 900 / 43.5 / 460, one 250 rocket per 5.5 s; outranges the 430 towers | Decurion `leggat` | 300 / 2550 / 45 / 361, six-shot gatling; the assault tank (the Stout's place at 300) |
 | Karkinos `legkark` | 310 / 1725 / 42 / 360, heat ray plus a shotgun; the Centurion's place | Barrage `legbar` | 250 / 1500 / 40 / 535, napalm artillery, area 120; short of the others' 710 |
 | Toxotai `legaabot` | 120, anti-air only, 760 | Lance `legrail` | 240 / 1100 / 46 / 650, railgun 200 per 7.5 s that also shoots aircraft |

@@ -91,23 +91,41 @@ In the pool beside the arena's version, for replays of games recorded on them (a
 the arena's earlier versions; test-31908 (the lobby's of 2026-11-10, the Erebos Lakes replay); test-31958-7ffdbab
 (2026-11-15, that day's seven lobby games); test-31986-603f15d (2026-11-16, that night's three lobby games).
 
-**The unit tables compiled into the binaries are not read from the arena's game.** `crates/bot/data/units.json`
-(the glossary and, through `run/fact_units.py`, the brief's unit tables; written by `run/unit_stats.py`) and
-`crates/combatsim/data/units.json` (the combat table of the micro engine, the combat estimates, the nuke code and
-the bots; written by `crates/combatsim/tools/extract_units.py`) were read from the game's source at 54199a0d
-(2026-09-19) and not again when the arena moved. Measured 2026-11-19 against the two builds' own commits, by running
-both tools on each: against test-32018, 57 of the glossary's 574 entries differ in a number (Armada 7, Cortex 14,
-Legion 36) and 81 of the combat table's 568 (18, 23, 40); 27 and 47 of them differed against test-31836 already,
-which the arena played from 2026-11-06. No unit was added or removed. Among Armada and Cortex the differences are
-small: the tier-1 turrets' sight (455 to 494 in the tables, 500 in the game), the Reaper (a shot 109 -> 120, reload
-0.7 -> 0.8 s, sight 462 -> 410), the advanced fusions' health, the rocket vehicles' prices and missiles, flight
-figures of some tier-3 and anti-nuke missiles, eight units' collision volumes (radius and height), the floating
-radars' health (110 and 114 -> 180), a dummy first weapon the tier-1 anti-air bots no longer carry. Legion has the
-larger ones (`legaheattank` health 7,700 -> 5,700 and metal 1,250 -> 1,050, the constructors' sight, the advanced
-navy's armour class). Regenerating is
-`run/unit_stats.py --checkout <the build's source>` and `crates/combatsim/tools/extract_units.py <the same>`, then
-`run/fact_units.py` and `run/glossary_sheet.py`. Not done (2026-11-19): the texts written beside the old numbers
-want reading with it, and it is the user's to order.
+**The unit tables compiled into the binaries follow the game version by hand.** `crates/bot/data/units.json` (the
+glossary: the brief's unit tables, and through `run/fact_units.py` the documents `docs/briefs/facts/units-*.md`;
+written by `run/unit_stats.py`) and `crates/combatsim/data/units.json` (the combat table of the micro engine, the
+combat estimates, the nuke code and the bots; written by `crates/combatsim/tools/extract_units.py`) are read from
+the local copy of the game's source, `upstream/Beyond-All-Reason`, at whatever commit it stands. They are at
+test-32018's commit (ad135b9c) since 2026-11-19, on the user's word ("Go ahead with the two tables and two
+documents"). Before that they were the game of 2026-09-19 through both of the arena's moves: `run/unit_stats.py
+--check` compares against the same local copy and said "up to date" all along. When the arena's game version moves:
+
+1. the build's source: `git -C upstream/Beyond-All-Reason fetch --depth 1 origin <hash>` and `checkout --detach
+   <hash>` (the full hash of the build's `byar:git:` line in `versions.gz`);
+2. `run/unit_stats.py` (it keeps every entry's hand-written `gloss` and `prose`), then
+   `crates/combatsim/tools/extract_units.py upstream/Beyond-All-Reason` into a scratch file and over
+   `crates/combatsim/data/units.json` once it has run clean;
+3. `run/fact_units.py` and `run/glossary_sheet.py` (the players' sheet, `docs/glossary/units.csv`);
+4. `run/unit_text_check.py --docs docs/briefs/derived docs/briefs/facts docs/briefs/meta docs/briefs/experience`
+   before committing: the hand-written texts that still state an old number. On 2026-11-19 it was 53 places in 25
+   units' descriptions (a price, a health, a weapon's shot and reload; and five comparisons the change had made
+   false or true: the Lupara's reach against the Eradicator's, the Legion amphibious plant's build power, the Legion
+   gantry and vehicle plant "at Cortex's price", the Aegis's health against the Prevailer's) and three lines of the brief (`derived/air.md`, `derived/tier3.md`,
+   `experience/units.md`);
+5. build, the tests, and the benches beside the rows before (`docs/experiments.md`, the tables' row of 2026-11-19).
+
+What that regeneration changed, against the game of 2026-09-19: 57 of the glossary's 574 entries (Armada 7, Cortex
+14, Legion 36) and 81 of the combat table's 568 (18, 23, 40); no unit added or removed. Among Armada and Cortex the
+tier-1 turrets' sight (455 to 494, now 500), the Tiger (a shot 109 -> 120, reload 0.7 -> 0.8 s, sight 462 -> 410),
+the advanced fusions' health, the rocket units' prices and missiles, flight figures of some tier-3 and anti-nuke
+missiles, eight units' collision volumes, the floating radars' health (110 and 114 -> 180), a dummy first weapon
+the tier-1 anti-air bots no longer carry. Legion has the larger ones (the Prometheus's health 7,700 -> 5,700 and
+metal 1,250 -> 1,050, the constructors' sight, the advanced navy's armour class).
+
+Not regenerated by any of this: `crates/bot/data/matchups.csv`, the 525 duel margins of 23 tier-1 units that the
+flagship's combat prediction reads. They were measured in the engine on the game of 2026-09-19
+(`docs/data/duels-2026-09-19`) and want the duels flown again, not a script; whether they have moved is not
+measured.
 
 Maps: Quicksilver Remake 1.24; Isidis crack 1.1, Feast of Hades 1.0.1, Comet Catcher Remake 1.8 and Mithril Mountain
 v2.0.1 (fetched 2026-09-20 as the most played on gex.honu.pw); the distilled bot's map bench (fetched

@@ -522,7 +522,7 @@ def chain():
     # kind: footprint, collision half width, health, blast radius, blast damage, edge (weapons/Unit_Explosions.lua, the unit files)
     kinds = {'solar': (80, 25, 340, 90, 89, 0.0), 'advsol': (64, 23, 1130, 90, 89, 0.0), 'wind': (48, 17, 196, 90, 89, 0.75),
              'makr': (48, 20, 167, 105, 660, 0.0), 'mmkr': (64, 30, 445, 160, 1220, 0.0), 'estor': (48, 21, 1890, 210, 980, 0.0),
-             'nanotc': (48, 15.5, 560, 64, 530, 0.75), 'fus': (96, 45, 3800, 240, 2650, 0.0), 'afus': (96, 48, 8300, 640, 10600, 0.0)}
+             'nanotc': (48, 15.5, 560, 64, 530, 0.75), 'fus': (96, 45, 3800, 240, 2650, 0.0), 'afus': (96, 48, 7900, 640, 10600, 0.0)}
     def blast(R, D, edge, d):
         return 0.0 if d >= R else D * (R - d) / (R - d * edge + 1e-3)
     print('kind (health): gap -> neighbours in reach, sum with all dead, sum with the row behind dead')

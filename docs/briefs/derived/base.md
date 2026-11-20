@@ -103,7 +103,7 @@ good when the next frame starts inside the reach of the build power that will fi
   on its own (K-mech-nano-turrets-idle-without-an-order). Reach and footprint set the ceiling: a lattice of touching
   turrets has at most 274 within reach of a 6 by 6 frame's centre and 304 of a 9 by 9's, before ground, streets and the
   frame's own footprint take their share. Build time over the turrets in reach is the frame's clock: a fusion
-  (54,000) under 10 turrets 27 seconds, under 20 thirteen; an advanced fusion (312,500) under 30 turrets 52 seconds,
+  (54,000) under 10 turrets 27 seconds, under 20 thirteen; an advanced fusion (313,000) under 30 turrets 52 seconds,
   under 60 twenty-six, drawing 1,300 energy a second meanwhile; an advanced plant (25,000) under 20 turrets 6 seconds.
   The turrets are the cheaper half of the pair: forty of them cost 9,200 metal, one advanced fusion's price, and
   thebluegecko's block of 276 stood thirty advanced fusions and 162 advanced converters (39 and 28 turrets within 300 of
@@ -150,8 +150,8 @@ good when the next frame starts inside the reach of the build power that will fi
   measured to the victim's surface, the radius half the file's `areaOfEffect` (F-fight-death). So the distance within
   which a death at full health kills a full-health neighbour is `radius × (1 − victim health / blast damage)`: an
   advanced fusion (10,600 to 640) kills a turret (560) within 606 of its surface, an advanced converter (445) within
-  613, a fusion (3,800) within 410, a plant (2,900 to 4,750) within 350 to 470, another advanced fusion within 139
-  (Armada's 8,300) or 48 (Cortex's 9,800) of its surface: touching advanced fusions chain, and at one footprint apart
+  613, a fusion (3,800) within 410, a plant (2,900 to 4,750) within 350 to 470, another advanced fusion within 163
+  (Armada's 7,900) or 72 (Cortex's 9,400) of its surface: touching advanced fusions chain, and at one footprint apart
   (96 of surface) Armada's still do. A fusion (2,650 to 240) kills a turret within 189, a converter within 225, a
   solar within 209, and no fusion by itself. That last qualifier is the general rule (the user, 2026-10-29): in a
   lattice a cell takes the sum of every dead neighbour's blast, so the chain criterion is that sum against its health,
@@ -170,7 +170,7 @@ good when the next frame starts inside the reach of the build power that will fi
   turrets, and the death of either at full health would kill 24 finished buildings; the advanced converters touching
   at 64 would chain three; the energy storages were spread (232 apart). The bill in his InactiveAI block, read the same
   way: the thirty advanced fusions stand touching (96 apart, nearest neighbour, all thirty) among the turrets (76 from
-  the nearest), so a dying one takes the three it touches (Cortex's 9,800 falls within its 48) and the death of one at
+  the nearest), so a dying one takes the three it touches (Cortex's 9,400 falls within its 72) and the death of one at
   full health kills 174 finished buildings median, 220 at most; the 155 advanced converters touch at 64 (a death takes
   eight buildings, five of them converters); the eight fusions stand 80 to 96 apart and 69 from the turrets (a death
   takes 19). He takes the whole bill for the density, against an opponent that cannot present it. The pool pays little of this in duels: by the same arithmetic 198 of 5,343 building deaths, 3.7

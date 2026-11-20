@@ -1558,8 +1558,8 @@ repetitions do.
 **Claim.** The game at test-32018 (BAR's release 2026.11.19-2, the lobby's from 2026-11-19) plays what we measure as
 test-31836 did (release 2026.11.04-2, the arena's from 2026-11-06), so a row from before the arena's move and one
 after it differ by their own scatter and not by the game. Between the two builds no number our unit tables carry
-changed for an Armada or Cortex unit but eight units' collision volumes (radius and height: the Thor, the Reaper,
-`corraid` among them) and the floating radars' health; the rest of the 30 glossary and 39 combat entries that changed
+changed for an Armada or Cortex unit but eight units' collision volumes (radius and height: the Thor, the Tiger
+`correap`, `corraid` among them) and the floating radars' health; the rest of the 30 glossary and 39 combat entries that changed
 are Legion's. BARb's game-side configuration did not change.
 **Status.** measured (2026-11-19), one binary on engine 2026.09.03 on each version.
 **Evidence.** The ledger's game-version row of 2026-11-19. The twelve-map bench (`dist397` .. `dist408`
@@ -1576,5 +1576,6 @@ game's source: both builds' commits (`b250a168`, `ad135b9c`, fetched by hash), `
 **Would be wrong if.** A bench played on both versions from one binary (`WITHIN_REASON_GAME`) differed by more than
 its repetitions do.
 **Used by.** The arena's game version since 2026-11-19 (`run/game_version`); the reading of rows across that day.
-The claim says nothing of the unit tables compiled into the binaries, which are older than both builds
-(docs/harness/engine.md, "Game data").
+The unit tables compiled into the binaries were the game of 2026-09-19 under all of the above; regenerated from
+test-32018's source the same evening, the three benches read the same again (34-32-30 on the twelve maps, 102 of
+120 raids, the 24 drills; the ledger's tables row; docs/harness/engine.md, "Game data").

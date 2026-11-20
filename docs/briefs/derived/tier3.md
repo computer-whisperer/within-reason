@@ -20,7 +20,7 @@ side has left minus the other's (+100 a flawless win).
 
 **The mechanism.**
 
-- *What each is.* The cheap reach: Shiva (1,600 metal; plasma at 650 and a rocket at 800; 5.9 health a metal),
+- *What each is.* The cheap reach: Shiva (1,700 metal; plasma at 650 and a rocket at 800; 5.5 health a metal),
   Karganeth (2,500; missiles at 600), Keres (2,600; 8.1 a metal), Marauder (970; 350, speed 94), Javelin (1,200):
   line tanks that out-reach line tanks, made in 18 to 52 seconds by a gantry alone. The front that stuns: the Thor
   (9,000; lightning at 540; beams that stun whatever closes to 350; 56,000 health; cannot be stunned). The fast
