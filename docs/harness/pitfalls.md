@@ -283,8 +283,9 @@ Since 2026-10-24 the repository is `~/workspace/within-reason/within-reason.git`
 The git-ignored working data (`upstream/`, `run/engines/`, `run/data/`, `run/matches/`, `target/`, 33 GB in all) lives
 only in the main worktree; a fresh worktree has none of it and needs its own engine and `run/data` (the engine
 writes its cache and infolog there, and two trees must not share one). The recipe that stood up the `territory`
-worktree (2026-10-24; the disk is btrfs, so the copies are reflinks: instant, no space until a file changes), from
-the new worktree's root:
+worktree (2026-10-24; the disk is btrfs, so the copies are reflinks: instant, no space until a file changes; that
+worktree and `within-reason.army-loop` were removed 2026-11-19 with their matches, and none stands beside the main
+tree now), from the new worktree's root:
 
 ```
 cp -r --reflink=always ../within-reason.main/run/engines run/engines && ln -s "$(readlink ../within-reason.main/run/engine)" run/engine

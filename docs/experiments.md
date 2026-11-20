@@ -27,6 +27,15 @@ as before; a tool that wants a replay's records takes the archive path. On 2026-
 2026-11-06 (`1792473708-barb-hard-1` through `1794024525-1v2-easy-2`, 31 GB: the brief rework and the distilled bot's arcs through
 the static defence arc, the duel drills among them) followed, the root filesystem at 73% (asked for, not forced); the carded replay
 stubs stay as before. Everything from 2026-11-07 on (`1794060468-human` and later) is still in `run/matches/`.
+**Two side worktrees' batches are gone.** Rows that say a batch is in the worktree `territory` (390 batches of
+2026-10-24 to 2026-10-27, `1792857136-terr37-lp-nullai-comet-1` through
+`1793155996-terr364-nukesmoke2-allies-glitters`, 8.4 GB) or in `within-reason.army-loop` (251 of 2026-11-15,
+`1794768006-duel-props-smoke` through `1794781671-duel-d12d-restart-rest`) name directories deleted with those
+worktrees on 2026-11-19, not archived (the user: "Let's clean up the territory and army-loop worktrees. Don't worry
+about keeping matches from them."); the rows stand as written. Both branches were in main. Kept in the main tree's
+`run/data`: the army-loop benches' launch scripts and outputs (`army-loop-kept/`), All That Glitters Extended v1.0.2
+(the map of the main tree's own lobby games of 2026-10-25, which only `territory` held) and Apex v0.3.3's warm
+record (`opponent-state/apex-v0.3.3-records/`).
 **The hands' logs are compressed** (`jev-<n>.jsonl.zst`, docs/harness/record-format.md): the arena does it as a match
 closes from 7d1c566 (2026-10-09) on, and on 2026-10-09 the 413 raw logs of the archive (80.0 GB, in 336 match directories)
 and the 7 of `run/matches/` (3.5 GB) were compressed in place with `arena --compress-logs`, to 6.0 GB and 0.2 GB; every
