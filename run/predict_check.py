@@ -4,17 +4,15 @@
 usage: run/predict_check.py run/matches/<batch> [...]
 For every engagement where both sides had soldiers on the spot: predicted power ratio against what happened.
 """
-import csv, glob, json, math, os, subprocess, sys
+import glob, json, math, os, subprocess, sys
 
 # How much a turret's metal counts for in a fight; set TURRET_WORTH in the environment to try others.
 TURRET_WORTH = float(os.environ.get("TURRET_WORTH", "1.5"))
 
 def table():
-    out = {}
-    for name in ("tight", "wide"):
-        for r in csv.DictReader(open(f"docs/data/duels-2026-09-19/{name}-pairs.csv")):
-            out.setdefault((r["unit"], r["against"]), []).append(float(r["mean_margin"]))
-    return {k: sum(v) / len(v) for k, v in out.items()}
+    """The table the predictor itself reads (the mean of the tight and wide duel tables, run/matchup_table.py)."""
+    rows = (line.strip().split(",") for line in open("crates/bot/data/matchups.csv") if line.strip() and not line.startswith("#"))
+    return {(unit, against): float(margin) for unit, against, margin in rows}
 
 MARGIN = table()
 

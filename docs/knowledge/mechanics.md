@@ -1578,4 +1578,8 @@ its repetitions do.
 **Used by.** The arena's game version since 2026-11-19 (`run/game_version`); the reading of rows across that day.
 The unit tables compiled into the binaries were the game of 2026-09-19 under all of the above; regenerated from
 test-32018's source the same evening, the three benches read the same again (34-32-30 on the twelve maps, 102 of
-120 raids, the 24 drills; the ledger's tables row; docs/harness/engine.md, "Game data").
+120 raids, the 24 drills; the ledger's tables row; docs/harness/engine.md, "Game data"). The tier-1 matchup tables,
+flown again that night on test-32018 beside a control arm on the game of 2026-09-19 (test-31357, engine 2026.07.04),
+read the same on both and as September's did: correlation 0.995 and 0.996 between the arms, no pairing changing
+sides, the Brute's row alone a little lower with its wider hit volume (the ledger's matchup row; `docs/knowledge/units.md`,
+"Duel results").

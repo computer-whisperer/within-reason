@@ -142,7 +142,11 @@ what we have not seen.
 **Evidence.** `run/predict_check.py` over v17-truth-medium and v18-verdict-fixes (48 games): 273 decisive engagements,
 89 % right (plain metal 88 %), 93 % beyond 1.5:1, 94 % beyond 2:1, 96 % beyond 3:1; correlation of log power ratio with
 log loss-share ratio 0.85. The selection is by outcome (decisive fights only), so this is the accuracy given that a
-fight goes to the finish, not the accuracy of "should we start it".
+fight goes to the finish, not the accuracy of "should we start it". **2026-11-19**: with the duel table flown again
+on the arena's game (`crates/bot/data/matchups.csv` from `docs/data/duels-2026-11-19`; the table had not moved) the
+same check over the same games reads the same, 89 % right at a turret worth 1.5 (plain metal 87 %), 93 / 94 / 96 %
+beyond 1.5 / 2 / 3 to 1, correlation 0.85, and 91 % at a turret worth 3; `run/predict_check.py` reads the table the
+predictor reads since then.
 **Would be wrong if.** With retreat and launch decided by these odds, our share of metal lost in their half did not fall.
 **Used by.** H-ARMY-WAVE-GATE, H-ARMY-RETREAT, the posted squads' intruder response (`brain/combat.rs`).
 

@@ -3,7 +3,7 @@
 //! situation: two single-type blobs of equal metal charging each other on flat ground. This knows range, speed,
 //! arrival order, turrets, mixed forces and the shape of the ground, at the cost of being a model.
 //!
-//! What it is judged by: the duel tables in `docs/data/duels-2026-09-19/`, replayed by `combatsim validate`.
+//! What it is judged by: the duel tables in `docs/data/duels-2026-11-19/`, replayed by `combatsim validate`.
 //! `docs/studies/combat-sim.md` has the numbers and what it still gets wrong.
 
 pub mod chase;

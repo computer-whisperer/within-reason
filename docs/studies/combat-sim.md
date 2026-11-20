@@ -4,7 +4,7 @@
 left, and how long it takes. It exists because the brain's matchup table (`crates/bot/src/brain/combat.rs`,
 `crates/bot/data/matchups.csv`) knows exactly one situation — two single-type blobs of equal metal charging each
 other on flat ground — and the questions we want to ask are about range, arrival order, turrets, mixed forces and
-the shape of the ground. Ground truth is the engine duel tables of 2026-09-19; `combatsim validate` replays every
+the shape of the ground. Ground truth is the engine duel tables (flown 2026-09-19, and again 2026-11-19 on the arena's game of that day); `combatsim validate` replays every
 pairing of both tables and reports the agreement below.
 
 **Nothing here has been tested in the arena, and no new engine duels were run for it.** The simulator agrees with
@@ -110,6 +110,17 @@ margin of at least 0.10, which is where the table itself stops being noise.
 
 Slope 0.79 means the simulation is *less* decisive than the engine across the board: it under-states margins by
 about a fifth, in both directions. The whole run takes 5.3 s for 2100 simulated duels.
+
+**2026-11-19: judged against the tables flown again** (`docs/data/duels-2026-11-19`, the arena's game test-32018;
+`crates/combatsim/src/duels.rs` reads that set now, and the unit table is that game's since the same day). The
+engine tables themselves had not moved (`docs/knowledge/units.md`, "Duel results"), and neither has the agreement:
+
+| table | decisive | sign agreement | mean abs. error | correlation | slope |
+|---|---|---|---|---|---|
+| tight, the set of 2026-09-19 (today's simulator and unit table) | 483 | 366 / 483 = 76 % | 0.287 | 0.731 | 0.81 |
+| tight, the set of 2026-11-19 | 461 | **355 / 461 = 77 %** | 0.288 | 0.720 | 0.81 |
+| wide, the set of 2026-09-19 | 472 | 386 / 472 = 82 % | 0.244 | 0.812 | 0.81 |
+| wide, the set of 2026-11-19 | 462 | **383 / 462 = 83 %** | 0.235 | 0.822 | 0.82 |
 
 **With collision off** (`--no-collide`): tight 74 % / 0.336 / r 0.667, wide 82 % / 0.227 / r 0.840. So on the duel
 tables collision is worth three points of agreement in the tight table and costs one in the wide one. That is

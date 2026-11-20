@@ -165,6 +165,23 @@ apart, 8 duels a pairing, 2184 duels) and **wide** (100 elmos, 4 a pairing, 1092
 Spread within a pairing is small (median sd 0.07), so the tables are repeatable; whether they are *representative* is
 the question (K-units-duel-caveats).
 
+**Flown again 2026-11-19** (`docs/data/duels-2026-11-19/`, `run/matchup_table.py`; the user: "Let's proceed with
+rerunning the matchup test runs", after the arena's game had moved twice under tables measured on the game of
+2026-09-19). Both tables on the arena's game and engine of that day (test-32018, engine 2026.09.03), and beside
+them a control arm on September's own (test-31357, engine 2026.07.04) with the same harness, so that what the
+harness changed and what the game changed read apart. The harness is not September's: the site now holds the
+whole formation on checked flat ground, which no ground of Quicksilver does for a 57-unit army (2,124 x 640 tight,
+2,740 x 940 wide), so all four batches were fought on Mithril Mountain v2.0.1; units are spawned by the console
+`/give`. **The tables did not move.** September's against the control arm: correlation 0.992 tight and 0.994 wide
+over the 252 pairings of two units, median shift 0.03 in both, 5 and 2 pairings beyond 0.20, no pairing changing
+sides with both margins beyond 0.10. The control arm against the new game and engine: 0.995 and 0.996, median
+0.02, one pairing beyond 0.20 in each, none changing sides: what two runs of eight (or four) duels differ by. The
+one unit whose row fell in both tables is the Brute `corraid` (-3 points of row mean), whose hit volume the game
+had widened (radius 16 to 18.5). The one pairing that reads differently on today's harness, on either game, is
+Brute against Thug: -19 / -16 in September, -2 / +4 and -6 / -2 in the two arms. The figures quoted in the claims
+below are September's; every claim holds on the new tables, and the quoted figures are within 10 points of the new
+ones except where a claim's own amendment says so.
+
 ### K-units-duel-line-bots-beat-raiders
 **Claim.** At equal metal in a head-on fight, Mace `armham` and Centurion `armwar` are our only tier-1 bots that win most
 matchups (row means +37 / +38 and +37 / +40); Pawn `armpw` and Rocketeer `armrock` lose most (-1 / +21 and -2 / +4).
@@ -179,6 +196,9 @@ quoted except Mace-Incisor wide (+4, mixed).
 ledger's exchange ratio against BARb; or the result vanished at 3-5x the army size.
 **Used by.** (candidate: H-PROD-BATCH weights — Mace as the default line unit, Pawn only for raiding; the commander's
 `set_production`)
+**Amended 2026-11-19** (the tables flown again): row means Mace +36 / +36, Centurion +35 / +38, Pawn 0 / +21,
+Rocketeer -1 / +2, Thug +35 / +37, Grunt -5 / +15. Mace against Thug +8 / +13 and against Incisor +7 / -3: nearer
+even than the +16 / +13 and +17 / +4 above, the rest of the quoted pairings within 10 points.
 
 ### K-units-duel-pounder-dominates
 **Claim.** Pounder `corlevlr` (220 M riot tank, range 315, speed 40) beats every other tier-1 land unit at equal metal,
@@ -191,6 +211,8 @@ turrets (+57 / +29). Pawn against Pounder stays lost at spacing 56, 100, 120 and
 artillery (710); a duel with the rockets held at range, or with retreat-while-firing, may reverse Rocketeer-Pounder.
 Untested here because both sides charge.
 **Used by.** (candidate: never send Pawn / Mace blobs into scouted Pounders; rockets or Janus with stand-off instead)
+**Amended 2026-11-19** (the tables flown again): row mean +76 / +70, its least margins Janus +18 tight and the
+Guard +34 wide; Pawn against it -90 / -83.
 
 ### K-units-duel-spacing-decides-area-damage
 **Claim.** How tightly an army is packed changes who wins when one side does area damage, so a single table is not enough.
@@ -201,7 +223,13 @@ the median shift is 0.12.
 **Status.** supported (2026-09-19)
 **Evidence.** `tight-` against `wide-pairs.csv`; batches `sp56`..`sp160`; the first probe, `spacing120`.
 **Would be wrong if.** The shift came from the wide formation's rear ranks standing outside the flat rectangle (they do,
-by up to ~500 elmos for the largest armies) rather than from spacing. Not separated.
+by up to ~500 elmos for the largest armies) rather than from spacing. Not separated. **Separated 2026-11-19: it
+is the spacing.** With the whole formation of both tables on checked flat ground (the site sized to the batch's
+largest army, on Mithril Mountain) the wide table reads as September's did (correlation 0.994, median shift 0.03)
+and the two new tables differ from each other as the first two did: Janus row mean +33 tight and +7 wide, seven of
+its matchups changing sign with both margins beyond 0.10 (Pawn +33 -> -37, Centurion +28 -> -11; against the Thug
+-8 -> -45, where the tight +15 above was), Pawn against Mace -37 / -3, Pawn's row mean 0 -> +21, 17 of 252
+pairings changing sign with both beyond 0.10, median shift 0.12.
 **Used by.** (candidate: the brain's blob attack-move is the tight case; spreading a Pawn wave is worth more than its unit
 stats suggest)
 **Amended 2026-09-28** (`docs/studies/2026-09-28-body-sizes.md`, the user's guess that the tier-2 bench was decided by
@@ -238,8 +266,8 @@ ball) rests on the opposite and needs the phase 2 replays first.
 ### K-units-duel-range-vs-turrets
 **Claim.** Against light laser towers at equal metal: Lasher `cormist` (range 575) wins untouched, +96 / +100; Rocketeer
 +43 / +37 and Aggravator +24 / +28 (range 475 against 430-435) win but pay for it; Mace +60 / +52 and Thug +63 / +53
-simply overpower them; Pawn loses -20 / -18. Artillery does **not** beat turrets here: Shellshocker `armart` -5 / -17
-against Sentry, -20 / -54 against Guard, despite range 710.
+simply overpower them; Pawn loses -20 / -18. Artillery does **not** beat turrets here: Shellshocker `armart` -5 / -43
+against Sentry (written -17 until 2026-11-19; the table's wide row is -0.426), -20 / -53 against Guard, despite range 710.
 **Status.** supported (2026-09-19) for the numbers; the explanation below is conjectured
 **Evidence.** Tables above. Conjecture for the artillery result: its sight (364) is shorter than the turret's range
 (430-435), so with no spotter or radar an attack-moving Shellshocker first sees the turret from inside its range.
@@ -247,6 +275,11 @@ Not checked in a replay.
 **Would be wrong if.** A Shellshocker group given a scout or radar coverage still lost to equal-metal turrets.
 **Used by.** K-units-rockets-outrange-llt (supports it, with the cost: rockets take return fire unless held at range);
 K-units-artillery-outranges-everything-t1 (qualifies it: range without sight is not stand-off)
+**Amended 2026-11-19** (the tables flown again): Lasher +100 / +100 against both turrets; Rocketeer +39 / +24
+against the Sentry and +32 / +9 against the Guard (September's wide +53 was two wins of four duels all but untouched beside
+0 and +23; the four of the new table lie between -3 and +19), Aggravator +42 / +34 and +35 / +25; Mace +59 / +53,
+Thug +62 / +53; Pawn -23 / -11; Shellshocker +5 / -42 against the Sentry (four won and four lost of the tight
+eight) and -19 / -54 against the Guard. The wide rows against a turret are the noisiest of the tables.
 
 ### K-units-towers-fire-at-the-rate-energy-arrives
 **Claim.** A light laser tower's 20 energy a shot, not its damage, is what decides a tower line's output where

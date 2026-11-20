@@ -65,6 +65,8 @@ batches from before the fire instrument too, leaving its columns empty (nan in `
 - **Sites** are chosen from `Hello.terrain`: 1440 x 640 elmo rectangles, every cell dry and within the least agile
   listed unit's slope limit, at most 16 elmos of relief, 900 from each other and from both commanders
   (`sites.rs`). Quicksilver gives two. Each site runs its own sequence of duels, so a match fights two at a time.
+  For the whole tier-1 matrix Quicksilver gives none (the rectangle grows with the largest army, Formations below:
+  2,124 x 640 at spacing 56 and 2,740 x 940 at 100 for 57 Ticks); Mithril Mountain v2.0.1 gives three and one.
 - **A duel.** The armies appear 1100 elmos apart (beyond every tier-1 weapon; artillery reaches 710) in their formation
   (by default ranks of eight, 56 elmos apart, further ranks behind; `--formation` below). The axis runs west-east because spawned units always face south: both sides
   start side-on. After one second both get a Fight order (attack-move) at the enemy's centre; idle units are sent again
@@ -622,6 +624,7 @@ speed (18 / 25 / 35 s), a reverse recovers in 4 s, the lane's one effect with no
 | Formation spacing | `sp56`..`sp160`, `t1-matrix-wide` | decides area-damage matchups: Pawn against Mace -0.45 / -0.02 / +0.09 / +0.19 at 56 / 100 / 120 / 160. Run both `--spacing 56` and `--spacing 100` before believing a row |
 | Order-level spread | `micro2-off` / `micro2-on` (2026-09-20) | 28 tier-1 pairings x 6 duels an arm, `--spread 110` for the first army: metal killed per metal lost 1.09 -> 1.30, mean margin +0.146, and `spread_x` at contact 81 -> 131 while theirs stayed at 94. All of the gain is the raiders' (`docs/studies/micro-combat.md`) |
 | Large armies at wide spacing | `scouts-wide` | 48 of 48 spawned, 57-Tick armies included. Units are claimed within the formation's own extent + 150; a fixed 600 radius missed rear ranks, and the first wide matrix had 112 `spawn_failed` of 1092 (deleted, not used) |
+| The tables on another map, the whole formation on checked ground | `mu-sep-tight`, `mu-sep-wide` (2026-11-19: September's game and engine, Mithril Mountain, the site sized to the largest army) | September's tables again: correlation 0.992 and 0.994 over 252 pairings, median shift 0.03, no pairing changing sides; Brute against Thug the one pairing that reads otherwise (-0.19 / -0.16 to -0.02 / +0.04). The rear ranks off the checked ground did not make the wide table |
 
 Fixed 2026-09-24: the site rectangle used to leave 170 elmos behind the front rank whatever the army, so rear ranks of
 big or widely spaced armies stood outside the ground that was checked for flatness; it now holds the batch's largest
@@ -631,6 +634,9 @@ formation (Formations, above).
 | Stout ball against a line | `muzzle-stout-shapes` (2026-09-24) | 24 against 24 Stouts, `ranks8`, `line`, `line/line`, 8 each on Mithril Mountain: the ball is not muzzled (0.0-0.4% of in-reach seconds, 0.79-0.84 shots a second of 0.83 possible) and beats the line (-0.13 +- 0.03 for the line, 1-7); `docs/studies/2026-09-24-muzzled-ball.md` |
 
 ## Cost
+The matchup tables (the 23 tier-1 units, tight and wide) are flown by the two commands `run/matchup_table.py --commands
+"Mithril Mountain v2.0.1"` prints and written by the same tool (`docs/harness/engine.md`, "Game data"); on 2026-11-19 a
+table of 2,184 duels took four minutes on six engines beside six others (230 s; the 1,092 of the wide one 165 s).
 An engine start is ~30 s. The full 23-unit table (2184 duels) took 568 s of wall time on two engines at `--speed 200`
 with nine other engines busy on the machine: ~4 duels a second (a duel is ~25 game seconds plus ~10 of clearing). One engine uses ~3 GB and about two cores.
 

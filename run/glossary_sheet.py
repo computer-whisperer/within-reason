@@ -9,8 +9,8 @@ the player reads), joined with the other per-unit facts the repo holds:
     record's header (`unit_defs`; the newest records under run/matches are read until
     every unit has a definition);
   - whether a builder's usual menu offers it to Jev (crates/bot/src/brain/roster.rs);
-  - the combat simulator's equal-metal duel margins (crates/bot/data/matchups.csv),
-    as the units it clearly beats and clearly loses to;
+  - the equal-metal duel margins measured in the engine (crates/bot/data/matchups.csv,
+    written by run/matchup_table.py), as the units it clearly beats and clearly loses to;
   - the experienced players' body sizes from the replay pool
     (docs/studies/2026-09-28-body-sizes.md).
 

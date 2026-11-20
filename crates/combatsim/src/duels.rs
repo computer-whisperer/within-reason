@@ -1,4 +1,6 @@
-//! Ground truth: the engine duel tables of 2026-09-19, and the same fights set up for the simulator.
+//! Ground truth: the engine duel tables (flown again on the arena's game of 2026-11-19: `run/matchup_table.py`,
+//! `docs/data/duels-2026-11-19/README.md`; the first set, 2026-09-19, stands beside it), and the same fights set up for
+//! the simulator.
 //!
 //! The geometry is the harness's (`docs/harness/duels.md`): two armies of about 1200 metal each, front ranks 1100
 //! elmos apart on a west-east axis, ranks of eight, flat ground, both sides attack-moving at the other's centre.
@@ -25,12 +27,12 @@ pub struct Pair {
 
 /// Ranks 56 elmos apart, eight duels a pairing.
 pub fn tight() -> Vec<Pair> {
-    parse(include_str!("../../../docs/data/duels-2026-09-19/tight-pairs.csv"))
+    parse(include_str!("../../../docs/data/duels-2026-11-19/tight-pairs.csv"))
 }
 
 /// Ranks 100 elmos apart, four duels a pairing.
 pub fn wide() -> Vec<Pair> {
-    parse(include_str!("../../../docs/data/duels-2026-09-19/wide-pairs.csv"))
+    parse(include_str!("../../../docs/data/duels-2026-11-19/wide-pairs.csv"))
 }
 
 fn parse(csv: &str) -> Vec<Pair> {
