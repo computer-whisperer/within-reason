@@ -89,7 +89,9 @@ versions.gz>`.
 
 In the pool beside the arena's version, for replays of games recorded on them (a demo names its game in full):
 the arena's earlier versions; test-31908 (the lobby's of 2026-11-10, the Erebos Lakes replay); test-31958-7ffdbab
-(2026-11-15, that day's seven lobby games); test-31986-603f15d (2026-11-16, that night's three lobby games).
+(2026-11-15, that day's seven lobby games); test-31986-603f15d (2026-11-16, that night's three lobby games);
+test-32010-92f8983 (2026-11-19, the people's 2v1 on Eye Of Horus that night, `run/matches/1795145182-tape-hvh-eye-of-horus-2v1`:
+the room played a build older than the arena's test-32018, which `byar:test` named at the hour of the fetch).
 
 **The unit tables compiled into the binaries follow the game version by hand.** `crates/bot/data/units.json` (the
 glossary: the brief's unit tables, and through `run/fact_units.py` the documents `docs/briefs/facts/units-*.md`;
