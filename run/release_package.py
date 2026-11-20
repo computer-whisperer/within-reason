@@ -52,7 +52,7 @@ def main() -> int:
     ap.add_argument("--so", help="the Linux library to ship (libbot_<bot>.so)")
     ap.add_argument("--dll", help="the Windows library to ship (bot_<bot>.dll)")
     ap.add_argument("--out", default="dist", help="output directory (default dist/)")
-    ap.add_argument("--engine", default="2026.07.04", help="the BAR engine the release was tested on, for the texts")
+    ap.add_argument("--engine", default="2026.09.03", help="the BAR engine the release was tested on, for the texts")
     ap.add_argument("--url", help="the url written into AIInfo.lua and the texts (default: bot_payload.sh's, the repository)")
     args = ap.parse_args()
     if not args.so and not args.dll:

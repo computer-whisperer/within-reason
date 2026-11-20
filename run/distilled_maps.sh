@@ -8,11 +8,14 @@
 # BARb hard_aggressive. Seeds 1-8, sides and boxes alternating, a 30-minute cap, no referee calls. The library is
 # built and installed once, before the first row (WITHIN_REASON_KEEP_INSTALLED for the rows: an edit during the
 # bench reaches none of them). Read with `run/bot_maps.py <label> ...`.
+# PORT=N: the first row's base port (default 9700; the second row's is N + 100), for a bench beside another batch.
+# WITHIN_REASON_ENGINE=<release>: the engine under run/engines the games run on, instead of run/engine.
 # The maps (fetch with pr-downloader --download-map, docs/harness/engine.md): the lobby's 1v1 maps of two players
 # (Onyx Cauldron, Quicksilver, Ravaged, Avalanche, Zed, Hooked, Flooded Valley, Argent Strata) and four small ones
 # of other kinds (Red Comet flat, The Halite Maze a maze with little metal, Sertaleina wind, TitanDuel flat).
 set -eu
 who="$1"; n="$2"; tag="${3:+$3-}"
+port="${PORT:-9700}"
 root=$(cd "$(dirname "$0")/.." && pwd)
 cd "$root"
 run/install_ai.sh
@@ -30,8 +33,8 @@ row() { # <map> <name> <port> <the opponent's flags...>
 }
 pair() { # <map> <name> <map> <name>
     m1="$1"; l1="$2"; m2="$3"; l2="$4"; shift 4
-    row "$m1" "$l1" 9700 "$@" & n=$((n + 1)); sleep 20
-    row "$m2" "$l2" 9800 "$@" & n=$((n + 1)); wait
+    row "$m1" "$l1" "$port" "$@" & n=$((n + 1)); sleep 20
+    row "$m2" "$l2" $((port + 100)) "$@" & n=$((n + 1)); wait
 }
 pair "Onyx Cauldron 2.2.2" onyx "Quicksilver Remake 1.24" quicksilver "$@"
 pair "Ravaged Remake v1.2" ravaged "Avalanche 3.4" avalanche "$@"

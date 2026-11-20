@@ -5,7 +5,9 @@ AI runs on his machine (his compute, his inference subscriptions). Own autohost 
 
 ## Local install — verified in the GUI 2026-09-19
 - BAR data dir `~/.local/share/BeyondAllReason` (moved there from `~/.local/state/Beyond All Reason` by 2026-09-22; the
-  install script's default), engine `recoil_2026.07.04`, the arena's engine too.
+  install script's default), engine `recoil_2026.09.03` since 2026-11-16 (`recoil_2026.07.04` before), the arena's
+  engine too since 2026-11-19 (engine.md, "Engine releases"). The AIs live in the data dir, not under the engine,
+  so the launcher's engine update kept them: nothing was installed again for it.
 - `run/install_to_bar.sh` COPIES the AI into `<data dir>/AI/Skirmish/WReason/0.1/`. Never symlink a development build:
   see pitfalls.md.
 - The lobby hides AIs without a friendly name unless "Simplified AI list" is off. That checkbox is in the Developer settings

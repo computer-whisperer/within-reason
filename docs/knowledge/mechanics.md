@@ -1524,3 +1524,32 @@ inside the map, 2 to 200 from its edge).
 and the bots); H-MICRO-INTERCEPT (`onto_map`: the wing's point where the fighter's line to it leaves the map).
 H-MICRO-ROVE's legs are covered by the host's guard alone. A reader of a tape's `cmd` rows: a row is an order
 given, not an order taken.
+
+### K-engine-2026-09-03-plays-our-benches-as-2026-07-04-did
+**Claim.** Engine 2026.09.03 (the lobby's from 2026-11-16) plays what we measure as 2026.07.04 did, so a row from
+before the move and one after it differ by their own scatter and not by the engine. The AI interface is the same
+byte for byte; the ground army's property drills read the same row for row; the wing's raids read the same; the
+bot's and BARb's curves on twelve maps read the same, but for what BARb's own new build does on a water map
+(K-barb-1-6-29-plays-water-maps). The pre-release 2026.11.04 reads the same on all of it.
+**Status.** measured (2026-11-19), one binary on each engine.
+**Evidence.** The ledger's engine row of 2026-11-19. Property drills (`run/props_bench.sh`, 24 rows an engine,
+`*-duel-e0704-*`, `-e0903-*`, `-e1104-*`, one repetition a row): first arrival and four fifths at the place within
+one second of each other in all 24 rows; the second nobody moves again within two in 22, the others walk-mixed
+(47, 46, 40) and restart-rest (68, 67, 64, the row whose known fault,
+K-group-an-army-made-again-at-rest-moves-everyone-in-most-runs, showed on the first two engines and not the third);
+orders a member a second within 0.05.
+The air raids (the fifteen raids of eight and two recorded runs of sixteen, `*-duel-air-M1-*` on 2026.07.04,
+`-N93-*`, `-N114-*`): a scene's warning within 1.4 s across the engines, its fly-out within 45, its first hit
+within 0.5 s; reactors kept 108, 109 and 111 of 120 in the raids. Run 1 read 15, 11 and 14 of 16 (2026.07.04,
+2026.09.03, 2026.11.04), and flown again 29, 27 and 31 of 32, then 57 of 64 on 2026.07.04 and 58 of 64 on
+2026.09.03 (`-R74-`, `-R93-`, `-R114-`, `-Q74-`, `-Q93-run1-f12`): scatter. The twelve-map bench (`run/distilled_maps.sh barb`, 96 games an engine):
+34-30-32, 43-32-21 and 32-39-25 on 2026.07.04, 2026.09.03 and 2026.11.04 (earlier rows of an unchanged bot: 36 to 47
+wins), our extractors at 10:00 a mean of 14.1, 14.7 and 13.7 a map and income 31.1, 32.2 and 30.1, no game aborted
+and no crash in the 288. Source: `git -C upstream/RecoilEngine diff 2026.07.04 2026.09.03 -- rts/ExternalAI` is
+empty but for the BARb submodule; the files our source-read claims cite either did not change
+(`StrafeAirMoveType.cpp`) or changed outside what the claims rest on (`CommandAI.cpp`: the test that drops an order
+to a place off the map is as it was; `AirCAI.cpp`, `MobileCAI.cpp`: the crashing-target test; `Weapon.cpp`: the
+bomb salvo and the muzzle under ground; `GroundMoveType.cpp`: 14 lines, not read against a claim).
+**Would be wrong if.** A drill or a bench flown on both engines from one binary differed by more than its
+repetitions do.
+**Used by.** The arena's engine since 2026-11-19 (`run/engine`); the reading of rows across that day.

@@ -674,3 +674,26 @@ fusions); `CircuitAI/src` (stockpile handling in `MilitaryManager.cpp`, no anti-
 **Used by.** D-NUKE-FIRE (`bots/distilled/src/nuke.rs`): the places struck are outside his known cover, so against
 BARb they are his outer buildings, or covered ones while his anti-nuke there has not been seen (a missile then likely
 taken).
+
+### K-barb-1-6-29-plays-water-maps
+**Claim.** BARb 1.6.29, the build that engine 2026.09.03 ships (the lobby's engine from 2026-11-16), plays a water
+map where 1.6.28 (engine 2026.07.04's) did not. On Flooded Valley, hard_aggressive against one WRDistilled binary on
+seeds 1 to 8: under 1.6.28 he held 2 extractors at 5:00 and 4 at 10:00 with 0 to 1 and 8 soldiers, a third to a half
+of his soldier-minutes Bladewings; under 1.6.29 4 and 7 extractors, 5 to 6 and 14 to 16 soldiers, and a navy
+(`corpship`, `corsub`, `coresupp`, with `armkam` in the air). The bot went 3-2-3 and 4-2-2 against the first and
+0-7-1 and 0-8-0 against the second. It is the AI's build and not the engine: 1.6.28's library put into engine
+2026.09.03 plays as it did on 2026.07.04.
+**Status.** measured (2026-11-19), one map, sixteen games a build. The cause in his code not read: the engine's
+changelog says only "Barbarian AI shipped with the engine updated to v1.6.29, contains a fix for island maps".
+**Evidence.** `run/matches/1795131992-dist392-e0704-flooded-barb` (engine 2026.07.04, 1.6.28: 3-2-3),
+`1795130158-dist368-e0903-flooded-barb` (2026.09.03, 1.6.29: 0-7-1), `1795131185-dist380-e1104-flooded-barb`
+(2026.11.04, 1.6.29: 0-8-0), `*-dist396-e0903barb1628-flooded-barb` (a copy of engine 2026.09.03 with 2026.07.04's
+`AI/Skirmish/BARb` in it, made for the row and removed: 4-2-2, his extractors 2 and 4, Bladewings a third), read
+with `run/bot_maps.py`; each game's `engine.log` says the build (`Skirmish AI <BARbarIAn-stable>: 1.6.29`). On the
+bench's eleven land maps his curves are the same on the three engines (with Flooded Valley in, his extractors at
+10:00 a mean of 7.8, 8.0 and 7.9 a map).
+**Would be wrong if.** A 1.6.28 game on Flooded Valley showed him building ships, or a 1.6.29 game there showed the
+Bladewing game.
+**Used by.** (none yet) What it says of older results: every game against BARb on a water or island map before
+2026-11-19 was against the build that may not have played the map. The bot's Flooded Valley rows are that; whether
+the flagship's sea games (sea-glacial-barb-1 and -2) had him held back the same way was not looked at.

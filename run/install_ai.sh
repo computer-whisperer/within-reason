@@ -22,9 +22,9 @@ if [ -n "${WITHIN_REASON_KEEP_INSTALLED:-}" ]; then
 fi
 cargo build --release --manifest-path "$root/Cargo.toml"
 # install_apex <version>: the Apex opponent as built into the arena's engine (its game-side and nets included, the
-# recipe in run/engines/2026.07.04/AI/Skirmish/Apex/<version>/BUILD-NOTE.txt), copied whole and renamed in.
+# recipe in run/engine/AI/Skirmish/Apex/<version>/BUILD-NOTE.txt), copied whole and renamed in.
 install_apex() {
-    src="$root/run/engines/2026.07.04/AI/Skirmish/Apex/$1"
+    src="$root/run/engine/AI/Skirmish/Apex/$1"
     dest="$data/AI/Skirmish/Apex/$1"
     [ -f "$src/libSkirmishAI.so" ] || { echo "no Apex build at $src" >&2; exit 2; }
     mkdir -p "$data/AI/Skirmish/Apex"

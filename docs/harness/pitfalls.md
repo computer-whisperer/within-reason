@@ -54,6 +54,11 @@ word of it, and its rows are not comparable with the ones before (2026-11-06: te
 while a bench on test-31691 was running; the tag's line in `versions.gz` was rewritten by hand to name test-31691
 again before the next row started; the tag was set to test-31836 the same afternoon on the user's word and the
 rows from dist177 on are that game's). Check `GameType` in a row's `_script.txt` after any fetch.
+With the downloader of engine 2026.09.03 a map alone no longer moves the tag (2026-11-19: `--download-map "Eye Of
+Horus 1.7.1"` left `versions.gz` byte for byte), as its changelog says; a game still does, named in full or by tag
+(the same day: fetching test-31986 by name left `byar:test` naming test-32018, that hour's build). And no batch may
+be starting matches while the file names another build: the arena and the duel runner resolve the tag at every
+match's start, so the fetch waits for the benches to end, or the file is put back before the next match begins.
 
 ## A replay that names the game by rapid tag will not open in the lobby
 
@@ -284,7 +289,7 @@ worktree (2026-10-24; the disk is btrfs, so the copies are reflinks: instant, no
 the new worktree's root:
 
 ```
-cp -r --reflink=always ../within-reason.main/run/engines run/engines && ln -s engines/2026.07.04 run/engine
+cp -r --reflink=always ../within-reason.main/run/engines run/engines && ln -s "$(readlink ../within-reason.main/run/engine)" run/engine
 cp -r --reflink=always ../within-reason.main/run/data run/data && mkdir -p run/matches run/logs
 cargo build --release && run/install_ai.sh      # the AI libraries into this tree's run/data/AI
 ```

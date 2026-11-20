@@ -36,8 +36,8 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use arena::autohost::{Autohost, Event};
 use arena::harness::{
-    ENGINE_MEMORY_GB, GAME_TAG, LOAD_ALLOWANCE, REPO, available_memory_gb, copy_tree, drop_match_caches, git_commit, refresh_cache_template,
-    resolve_game, stop,
+    ENGINE_MEMORY_GB, GAME_TAG, LOAD_ALLOWANCE, REPO, available_memory_gb, copy_tree, drop_match_caches, engine_dir, engine_release, git_commit,
+    refresh_cache_template, resolve_game, stop,
 };
 use bot_protocol::{Commands, FrameReader, ToBot, write_frame};
 
@@ -127,7 +127,7 @@ fn main() -> io::Result<()> {
     fs::write(
         batch_dir.join("batch.json"),
         serde_json::to_string_pretty(&serde_json::json!({
-            "label": options.label, "commit": git_commit(&repo), "map": options.map, "pairings": options.pairs.len(),
+            "label": options.label, "commit": git_commit(&repo), "engine": engine_release(&repo), "map": options.map, "pairings": options.pairs.len(),
             "reps": options.reps, "sizing": format!("{:?}", options.sizing), "time_limit": options.time_limit,
             "speed": options.speed, "sweep_waves": options.sweep_waves, "spacing": options.spacing, "formations": shapes, "lanes": [options.lanes[0].label(), options.lanes[1].label()], "sites": options.sites, "duels_per_match": options.duels_per_match,
             "scenario": options.scenario.as_ref().map(|s| s.centre), "chase": options.chase, "raid": options.raid,
@@ -299,7 +299,7 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, batch: &Arc<Batch
     let listener = serve(&socket, director.clone(), closing.clone())?;
 
     let log = File::create(dir.join("engine.log"))?;
-    let mut engine = Command::new(repo.join("run/engine/spring-headless"))
+    let mut engine = Command::new(engine_dir(repo).join("spring-headless"))
         .args(["--isolation", "--write-dir"])
         .arg(&dir)
         .arg(&script_path)

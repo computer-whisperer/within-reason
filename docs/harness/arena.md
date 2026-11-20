@@ -16,7 +16,9 @@ the speed over the autohost channel, reads the winner from SERVER_GAMEOVER, and 
   random Armada or Cortex commander); BARb and Apex both play Legion from their game-side configs
   (K-leg-both-stock-ais-play-legion in `docs/knowledge/legion.md`).
 - After a batch the arena prints mean heuristic firings per match for wins against losses (from the `rules:` lines in
-  `bot.log`) and a ledger row for `docs/experiments.md`; `batch.json` records label, commit and options.
+  `bot.log`) and a ledger row for `docs/experiments.md`; `batch.json` records label, commit and options, and since
+  2026-11-19 the engine release (`engine`): `run/engine`'s, or `run/engines/<WITHIN_REASON_ENGINE>` when that is set
+  for a batch on another release (engine.md, "Moving to a new release"; the duel runner the same).
 - `game_minutes` is read from the last `[f=N]` in the engine log after exit.
 - An opponent's state between games (Apex's `apex-record.txt`, the exchange matrix that prices unit matchups) is carried
   under `run/data/opponent-state/<Name>-<Version>/`: the AI's own directory's files at the top, and under `skirmish/` the

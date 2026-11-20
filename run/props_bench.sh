@@ -2,6 +2,7 @@
 # The property drills (docs/design/2026-11-15-army-control-loop.md, section 9): one batch a row, every label
 # prefixed with $1 (the engine under test: `base` for the engine before the rebuild). Read with run/drill_props.py.
 # usage: run/props_bench.sh PREFIX [DUEL_BINARY] [ONLY]   (ONLY: a pattern of row names to run, default all)
+# PORT=N: the duels' base port, for a second bench beside this one (another engine release by WITHIN_REASON_ENGINE).
 set -eu
 root=$(cd "$(dirname "$0")/.." && pwd)
 prefix="$1"
@@ -16,7 +17,7 @@ row() {
     shift
     case "$name" in *"$only"*) ;; *) return 0 ;; esac
     echo "== $prefix-$name"
-    "$duel" --drill walk --lane on --cap 24 --reps 1 --label "$prefix-$name" "$@" 2>&1 | grep -E "^\[1/1\]|not run|error" || true
+    "$duel" --drill walk --lane on --cap 24 --reps 1 --label "$prefix-$name" ${PORT:+--base-port "$PORT"} "$@" 2>&1 | grep -E "^\[1/1\]|not run|error" || true
 }
 w48="--ours armpw --count 48 --distance 2000 --order move"
 # P1 stand: to one point, then what the army does there.

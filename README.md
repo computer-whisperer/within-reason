@@ -86,10 +86,9 @@ The flagship also needs a TypeSafe API key (`TYPESAFE_API_KEY`, or the file `~/.
 ```sh
 cargo build --release
 
-# engine (use the version BAR ships; see docs/harness/engine.md) and game data
-mkdir -p run/engines && cd run
-gh release download 2026.07.04 -R beyond-all-reason/RecoilEngine -p 'recoil_*_amd64-linux.7z'
-7z x -oengines/2026.07.04 recoil_*_amd64-linux.7z && ln -s engines/2026.07.04 engine
+# engine (the release BAR's launcher runs; see docs/harness/engine.md) and game data
+run/engine_fetch.sh 2026.09.03 --use     # unpacks run/engines/2026.09.03 and points run/engine at it
+cd run
 export PRD_RAPID_USE_STREAMER=false PRD_RAPID_REPO_MASTER=https://repos-cdn.beyondallreason.dev/repos.gz \
        PRD_HTTP_SEARCH_URL=https://files-cdn.beyondallreason.dev/find
 ./engine/pr-downloader --filesystem-writepath "$PWD/data" --download-game byar:test

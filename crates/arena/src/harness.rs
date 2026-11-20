@@ -244,6 +244,25 @@ pub fn stop(engine: &mut Child, autohost: &mut Autohost) {
     let _ = engine.wait();
 }
 
+/// The engine a match runs, as a directory: the checkout's `run/engine` (a link into `run/engines`), or
+/// `run/engines/<WITHIN_REASON_ENGINE>` for a batch that tries another release beside it without moving the link
+/// (2026-11-19: 2026.09.03 and the 2026.11 pre-release against 2026.07.04). The opponents live under the engine's own
+/// `AI/Skirmish`, so each release carries its own copies (`run/engine_fetch.sh`).
+pub fn engine_dir(repo: &Path) -> PathBuf {
+    match std::env::var("WITHIN_REASON_ENGINE") {
+        Ok(release) if !release.is_empty() => repo.join("run/engines").join(release),
+        _ => repo.join("run/engine"),
+    }
+}
+
+/// The release `engine_dir` holds, by its directory's name under `run/engines`, for `batch.json`: a row's engine is
+/// part of what was under test.
+pub fn engine_release(repo: &Path) -> String {
+    let dir = engine_dir(repo);
+    let named = fs::canonicalize(&dir).ok().and_then(|path| path.file_name().map(|name| name.to_string_lossy().into_owned()));
+    named.unwrap_or_else(|| dir.display().to_string())
+}
+
 /// Short commit hash, with `+` when the working tree has uncommitted changes to tracked files.
 pub fn git_commit(repo: &Path) -> String {
     let git = |args: &[&str]| Command::new("git").arg("-C").arg(repo).args(args).output().ok();

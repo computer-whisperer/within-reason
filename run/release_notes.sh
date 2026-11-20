@@ -27,5 +27,5 @@ Not the "Source code" archives GitHub adds below: those are the whole repository
 
 Only the player hosting the game needs it. The installer puts the AI into BAR's data folder, where a BAR engine update keeps it, and switches the lobby to its full AI list (the simple list hides every custom AI; BAR must be closed for that step). Then, in a skirmish or a lobby you host, **Add AI** and pick **$short $version**. \`INSTALL.txt\` inside has the steps by hand.
 
-Tested on BAR engine 2026.07.04 on Linux. The Windows build has not been played yet: please say in an issue whether it loads for you.
+Tested on BAR engine 2026.09.03 on Linux. The Windows build has not been played yet: please say in an issue whether it loads for you.
 NOTES
