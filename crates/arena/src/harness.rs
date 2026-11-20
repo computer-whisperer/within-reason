@@ -9,33 +9,34 @@ use std::time::{Duration, Instant};
 use crate::autohost::Autohost;
 
 pub const REPO: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
-/// The game version matches are played on, as a rapid tag; resolved to its full name for the start script.
-pub const GAME_TAG: &str = "byar:test";
 /// Wall-clock allowance for engine start-up and map loading.
 pub const LOAD_ALLOWANCE: Duration = Duration::from_secs(90);
 /// Resident memory one engine needs with the match template's settings, with headroom.
 pub const ENGINE_MEMORY_GB: u64 = 4;
 
-/// The full name a rapid tag stands for ("byar:test" -> "Beyond All Reason test-NNNNN-hash"), from the rapid
-/// index in our data directory. A start script may name either, but the name ends up in the replay's header, and
-/// the BAR lobby offers to download a game called "byar:test" for ever instead of opening the replay.
-pub fn resolve_game(repo: &Path, tag: &str) -> io::Result<String> {
-    let rapid = repo.join("run/data/rapid");
-    let repository = tag.split(':').next().unwrap_or_default();
-    for host in fs::read_dir(&rapid)?.flatten() {
-        let Ok(file) = File::open(host.path().join(repository).join("versions.gz")) else { continue };
-        let mut index = String::new();
-        flate2::read::GzDecoder::new(file).read_to_string(&mut index)?;
-        // tag,package hash,dependencies,full name
-        let name = index.lines().find_map(|line| {
-            let mut fields = line.split(',');
-            (fields.next() == Some(tag)).then(|| fields.nth(2)).flatten()
-        });
-        if let Some(name) = name {
-            return Ok(name.to_string());
-        }
+/// The game version matches are played on, by its full name ("Beyond All Reason test-NNNNN-hash"): the first line of
+/// the tracked `run/game_version`, which moves by a commit on the user's word, or `WITHIN_REASON_GAME` for a batch on
+/// another version in the pool (docs/harness/engine.md, "Game data"). Read once a process, so a batch plays one
+/// version. A full name and not the rapid tag `byar:test`: the engine resolves a tag from the index pr-downloader
+/// keeps, which every game fetch rewrites to the newest build, and the tag would go into the replay's header as
+/// written, where the BAR lobby offers to download a game called "byar:test" for ever instead of opening the replay.
+pub fn game_version(repo: &Path) -> io::Result<String> {
+    static GAME: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+    if let Some(name) = GAME.get() {
+        return Ok(name.clone());
     }
-    Err(io::Error::other(format!("rapid tag {tag} not found under {}", rapid.display())))
+    let name = match std::env::var("WITHIN_REASON_GAME") {
+        Ok(name) if !name.trim().is_empty() => name.trim().to_string(),
+        _ => {
+            let path = repo.join("run/game_version");
+            let text = fs::read_to_string(&path).map_err(|e| io::Error::other(format!("{}: {e}", path.display())))?;
+            match text.lines().next().map(str::trim) {
+                Some(name) if !name.is_empty() => name.to_string(),
+                _ => return Err(io::Error::other(format!("{} names no game version", path.display()))),
+            }
+        }
+    };
+    Ok(GAME.get_or_init(|| name).clone())
 }
 
 /// Latest game frame in the engine log: the engine prefixes its lines with `[f=NNNNNNN]` and our

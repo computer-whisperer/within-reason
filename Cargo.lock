@@ -49,7 +49,6 @@ dependencies = [
  "bot-protocol",
  "buildorder",
  "combatsim",
- "flate2",
  "micro",
  "serde",
  "serde_json",

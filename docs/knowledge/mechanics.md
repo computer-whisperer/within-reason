@@ -1540,7 +1540,7 @@ K-group-an-army-made-again-at-rest-moves-everyone-in-most-runs, showed on the fi
 orders a member a second within 0.05.
 The air raids (the fifteen raids of eight and two recorded runs of sixteen, `*-duel-air-M1-*` on 2026.07.04,
 `-N93-*`, `-N114-*`): a scene's warning within 1.4 s across the engines, its fly-out within 45, its first hit
-within 0.5 s; reactors kept 108, 109 and 111 of 120 in the raids. Run 1 read 15, 11 and 14 of 16 (2026.07.04,
+within 0.5 s; every reactor kept in 100, 101 and 103 of the 120 raids (counted again from the records 2026-11-19 evening; first written as 108, 109 and 111, eight too many each) in the raids. Run 1 read 15, 11 and 14 of 16 (2026.07.04,
 2026.09.03, 2026.11.04), and flown again 29, 27 and 31 of 32, then 57 of 64 on 2026.07.04 and 58 of 64 on
 2026.09.03 (`-R74-`, `-R93-`, `-R114-`, `-Q74-`, `-Q93-run1-f12`): scatter. The twelve-map bench (`run/distilled_maps.sh barb`, 96 games an engine):
 34-30-32, 43-32-21 and 32-39-25 on 2026.07.04, 2026.09.03 and 2026.11.04 (earlier rows of an unchanged bot: 36 to 47
@@ -1553,3 +1553,28 @@ bomb salvo and the muzzle under ground; `GroundMoveType.cpp`: 14 lines, not read
 **Would be wrong if.** A drill or a bench flown on both engines from one binary differed by more than its
 repetitions do.
 **Used by.** The arena's engine since 2026-11-19 (`run/engine`); the reading of rows across that day.
+
+### K-game-test-32018-plays-our-benches-as-test-31836-did
+**Claim.** The game at test-32018 (BAR's release 2026.11.19-2, the lobby's from 2026-11-19) plays what we measure as
+test-31836 did (release 2026.11.04-2, the arena's from 2026-11-06), so a row from before the arena's move and one
+after it differ by their own scatter and not by the game. Between the two builds no number our unit tables carry
+changed for an Armada or Cortex unit but eight units' collision volumes (radius and height: the Thor, the Reaper,
+`corraid` among them) and the floating radars' health; the rest of the 30 glossary and 39 combat entries that changed
+are Legion's. BARb's game-side configuration did not change.
+**Status.** measured (2026-11-19), one binary on engine 2026.09.03 on each version.
+**Evidence.** The ledger's game-version row of 2026-11-19. The twelve-map bench (`dist397` .. `dist408`
+`-g32018-`): 35-38-23 beside 34-30-32, 43-32-21 and 32-39-25 on the old game, extractors at 10:00 a mean of 14.5 a
+map beside 14.1, 14.7 and 13.7, no abort in 96. Zed read 0-7-1 against 4-3-1, 4-2-2 and 5-3-0, and on sixteen other
+seeds 6-6-4 on the new game and 5-9-2 on the old (`dist409`, `dist410`). Property drills (`*-duel-g32018-*`): first
+arrival and four fifths at the place within a second of the old game's in all 24 rows; the two rows that read
+otherwise once (build-slot's rest, alternate-mixed's orders a second) read the same on both versions flown eight
+times each (`slot8-*`, `altmix8-*`). The air raids (`*-duel-air-G18-*`): warning within 1.0 s and first hit within
+0.4 s a scene (aside 1.4), every reactor kept in 101 of 120 raids on each version, the runs 16 and 16 of 16. The
+game's source: both builds' commits (`b250a168`, `ad135b9c`, fetched by hash), `run/unit_stats.py` and
+`crates/combatsim/tools/extract_units.py` run on each and the tables compared; `git diff` of
+`luarules/configs/BARb`, `gamedata`, `luarules/gadgets` and `modoptions.lua` read.
+**Would be wrong if.** A bench played on both versions from one binary (`WITHIN_REASON_GAME`) differed by more than
+its repetitions do.
+**Used by.** The arena's game version since 2026-11-19 (`run/game_version`); the reading of rows across that day.
+The claim says nothing of the unit tables compiled into the binaries, which are older than both builds
+(docs/harness/engine.md, "Game data").

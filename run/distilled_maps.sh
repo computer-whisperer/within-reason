@@ -10,6 +10,7 @@
 # bench reaches none of them). Read with `run/bot_maps.py <label> ...`.
 # PORT=N: the first row's base port (default 9700; the second row's is N + 100), for a bench beside another batch.
 # WITHIN_REASON_ENGINE=<release>: the engine under run/engines the games run on, instead of run/engine.
+# WITHIN_REASON_GAME="<full name>": the game version in the pool they play, instead of run/game_version's.
 # The maps (fetch with pr-downloader --download-map, docs/harness/engine.md): the lobby's 1v1 maps of two players
 # (Onyx Cauldron, Quicksilver, Ravaged, Avalanche, Zed, Hooked, Flooded Valley, Argent Strata) and four small ones
 # of other kinds (Red Comet flat, The Halite Maze a maze with little metal, Sertaleina wind, TitanDuel flat).

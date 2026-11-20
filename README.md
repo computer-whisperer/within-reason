@@ -91,7 +91,7 @@ run/engine_fetch.sh 2026.09.03 --use     # unpacks run/engines/2026.09.03 and po
 cd run
 export PRD_RAPID_USE_STREAMER=false PRD_RAPID_REPO_MASTER=https://repos-cdn.beyondallreason.dev/repos.gz \
        PRD_HTTP_SEARCH_URL=https://files-cdn.beyondallreason.dev/find
-./engine/pr-downloader --filesystem-writepath "$PWD/data" --download-game byar:test
+./engine/pr-downloader --filesystem-writepath "$PWD/data" --download-game "$(cat game_version)"   # the version the arena plays
 ./engine/pr-downloader --filesystem-writepath "$PWD/data" --download-map "Comet Catcher Remake 1.8"
 cd ..
 

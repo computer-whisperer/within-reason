@@ -63,19 +63,61 @@ A 33 MB Linux archive ships `spring`, `spring-headless`, `spring-dedicated`, `pr
   None of these moved a bench figure beyond its scatter.
 
 ## Game data
-`pr-downloader --filesystem-writepath run/data --download-game byar:test` (and `--download-map "<name>"`) with env
-`PRD_RAPID_USE_STREAMER=false PRD_RAPID_REPO_MASTER=https://repos-cdn.beyondallreason.dev/repos.gz
-PRD_HTTP_SEARCH_URL=https://files-cdn.beyondallreason.dev/find`. Currently: test-31836 (2026-11-06, the lobby's version, on the user's word; test-31691 before it; the older ones stay in the pool for replays; test-31908, the lobby's version of 2026-11-10, is in the pool for the Erebos Lakes replay with `versions.gz` put back, so `byar:test` still names test-31836, and Erebos Lakes v1.0 is among the maps; test-31958-7ffdbab, the lobby's version of 2026-11-15, the same way for
-the tapes of that day's seven lobby games, with Copper Hill v1.0.1, Ceasefire 1.1, Faster Than Light 1.1, Canis River
-v1.4 and Tangerine_Remake 1.0 among the maps; test-31986-603f15d, the lobby's version of 2026-11-16, the same way
-for the tapes of that night's three lobby games, with Eye Of Horus 1.7.1 among the maps; test-32018-ad135b9, the
-lobby's version of 2026-11-19, for the engine check's smoke, the tag put back to test-31836 after it); maps Quicksilver Remake 1.24, Isidis crack 1.1, Feast of Hades 1.0.1, Comet Catcher Remake 1.8,
-Mithril Mountain v2.0.1, the distilled bot's map bench (fetched 2026-11-06: Onyx Cauldron 2.2.2, Ravaged Remake v1.2, Avalanche 3.4,
-Zed Remake 3.3.1, Red Comet Remake 1.8, The Halite Maze v1.4, Hooked 1.1.1, Flooded_Valley_V5, Argent Strata 1.1, Sertaleina_v9.2,
-TitanDuel_V3; `run/distilled_maps.sh`), Great Divide V1 (the team-game test ground, fetched 2026-09-20: four starts, two north and two
-south; `--boxes north-south`) (the middle four fetched 2026-09-20 as the most played on gex.honu.pw; pass the exact name to the
-arena's `--map`). The arena's start boxes default to the north-west and south-east 30 % corners, which is not
-where people start on a left-against-right map such as Comet Catcher (`--boxes west-east` is there for it, untried).
+**The game version the arena and the duel runner play is the tracked file `run/game_version`**: one line, the game's
+full name. Currently `Beyond All Reason test-32018-ad135b9` (BAR's release 2026.11.19-2, the lobby's version that
+day; the user, 2026-11-19: "agreed, move the arena to test-32018"). Before it: test-31836-b250a16 from 2026-11-06
+(release 2026.11.04-2, on the user's word), test-31691 before that. It moves by a commit of that file on the user's
+word and by nothing else. `WITHIN_REASON_GAME="<full name>"` plays a batch on another version in the pool without
+moving it, and `batch.json` records `game`. Rows on different game versions are not comparable on balance, so after
+a move the benches are played again as the new baseline (`docs/experiments.md`, the rows of 2026-11-19 and of
+2026-11-06).
+
+Until 2026-11-19 the arena named the rapid tag `byar:test` and resolved it at every match's start from the index
+pr-downloader keeps (`run/data/rapid/.../byar/versions.gz`), which every game fetch rewrites to the newest build:
+a replay's version fetched for a tape moved the arena with no word of it (2026-11-06, a bench's rows) or was put back
+by hand (every lobby replay from 2026-11-10 on; docs/harness/pitfalls.md has the history). A game named in full needs no index: the engine names a package by
+the `modinfo.lua` inside it and reads `versions.gz` for tags alone (`rts/System/FileSystem/RapidHandler.cpp`).
+
+Fetching, with env `PRD_RAPID_USE_STREAMER=false PRD_RAPID_REPO_MASTER=https://repos-cdn.beyondallreason.dev/repos.gz
+PRD_HTTP_SEARCH_URL=https://files-cdn.beyondallreason.dev/find`:
+`run/engine/pr-downloader --filesystem-writepath run/data --download-game "$(cat run/game_version)"`, and
+`--download-map "<name>"`. The lobby's version of the hour is what `byar:test` names upstream (`--download-game
+byar:test` fetches it and prints its name; the launcher's setups download that tag, docs above). A build's source
+is the commit in its name, which GitHub serves though it is on no branch we track (BAR cuts each release as its own
+commit): `git -C upstream/Beyond-All-Reason fetch --depth 1 origin <the full hash of the build's `byar:git:` line in
+versions.gz>`.
+
+In the pool beside the arena's version, for replays of games recorded on them (a demo names its game in full):
+the arena's earlier versions; test-31908 (the lobby's of 2026-11-10, the Erebos Lakes replay); test-31958-7ffdbab
+(2026-11-15, that day's seven lobby games); test-31986-603f15d (2026-11-16, that night's three lobby games).
+
+**The unit tables compiled into the binaries are not read from the arena's game.** `crates/bot/data/units.json`
+(the glossary and, through `run/fact_units.py`, the brief's unit tables; written by `run/unit_stats.py`) and
+`crates/combatsim/data/units.json` (the combat table of the micro engine, the combat estimates, the nuke code and
+the bots; written by `crates/combatsim/tools/extract_units.py`) were read from the game's source at 54199a0d
+(2026-09-19) and not again when the arena moved. Measured 2026-11-19 against the two builds' own commits, by running
+both tools on each: against test-32018, 57 of the glossary's 574 entries differ in a number (Armada 7, Cortex 14,
+Legion 36) and 81 of the combat table's 568 (18, 23, 40); 27 and 47 of them differed against test-31836 already,
+which the arena played from 2026-11-06. No unit was added or removed. Among Armada and Cortex the differences are
+small: the tier-1 turrets' sight (455 to 494 in the tables, 500 in the game), the Reaper (a shot 109 -> 120, reload
+0.7 -> 0.8 s, sight 462 -> 410), the advanced fusions' health, the rocket vehicles' prices and missiles, flight
+figures of some tier-3 and anti-nuke missiles, eight units' collision volumes (radius and height), the floating
+radars' health (110 and 114 -> 180), a dummy first weapon the tier-1 anti-air bots no longer carry. Legion has the
+larger ones (`legaheattank` health 7,700 -> 5,700 and metal 1,250 -> 1,050, the constructors' sight, the advanced
+navy's armour class). Regenerating is
+`run/unit_stats.py --checkout <the build's source>` and `crates/combatsim/tools/extract_units.py <the same>`, then
+`run/fact_units.py` and `run/glossary_sheet.py`. Not done (2026-11-19): the texts written beside the old numbers
+want reading with it, and it is the user's to order.
+
+Maps: Quicksilver Remake 1.24; Isidis crack 1.1, Feast of Hades 1.0.1, Comet Catcher Remake 1.8 and Mithril Mountain
+v2.0.1 (fetched 2026-09-20 as the most played on gex.honu.pw); the distilled bot's map bench (fetched
+2026-11-06: Onyx Cauldron 2.2.2, Ravaged Remake v1.2, Avalanche 3.4, Zed Remake 3.3.1, Red Comet Remake 1.8, The
+Halite Maze v1.4, Hooked 1.1.1, Flooded_Valley_V5, Argent Strata 1.1, Sertaleina_v9.2, TitanDuel_V3;
+`run/distilled_maps.sh`); Great Divide V1 (the team-game test ground, fetched 2026-09-20: four starts, two north and
+two south; `--boxes north-south`); the lobby games' maps (Erebos Lakes v1.0, Copper Hill v1.0.1, Ceasefire 1.1,
+Faster Than Light 1.1, Canis River v1.4, Tangerine_Remake 1.0, Eye Of Horus 1.7.1). Pass the exact name to the
+arena's `--map`. The arena's start boxes default to the north-west and south-east 30 % corners, which is not where
+people start on a left-against-right map such as Comet Catcher (`--boxes west-east` is there for it, untried).
 
 ## Native AI interface
 - Discovery: `<data dir>/AI/Skirmish/<ShortName>/<Version>/{AIInfo.lua,libSkirmishAI.so}` (AILibraryManager.cpp:183); any data

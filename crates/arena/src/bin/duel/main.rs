@@ -13,6 +13,8 @@
 //!        A side of a pairing is a unit name (the count from --budget/--count) or a mixed force `name*count+name*count`.
 //!        --lane off|old|on|ranks per side: whether the control lane (`crates/micro`) drives the army as a declared group over the director's orders (`ranks`: the group without pacing).
 //!        duel --report DIR [duels.csv ...]   (rebuild the tables in DIR, from its own duels.csv or the files named)
+// The batch's settings are one `json!` object, past the default limit of its macro's recursion.
+#![recursion_limit = "256"]
 
 mod director;
 mod drill;
@@ -36,8 +38,8 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use arena::autohost::{Autohost, Event};
 use arena::harness::{
-    ENGINE_MEMORY_GB, GAME_TAG, LOAD_ALLOWANCE, REPO, available_memory_gb, copy_tree, drop_match_caches, engine_dir, engine_release, git_commit,
-    refresh_cache_template, resolve_game, stop,
+    ENGINE_MEMORY_GB, LOAD_ALLOWANCE, REPO, available_memory_gb, copy_tree, drop_match_caches, engine_dir, engine_release, game_version,
+    git_commit, refresh_cache_template, stop,
 };
 use bot_protocol::{Commands, FrameReader, ToBot, write_frame};
 
@@ -127,7 +129,7 @@ fn main() -> io::Result<()> {
     fs::write(
         batch_dir.join("batch.json"),
         serde_json::to_string_pretty(&serde_json::json!({
-            "label": options.label, "commit": git_commit(&repo), "engine": engine_release(&repo), "map": options.map, "pairings": options.pairs.len(),
+            "label": options.label, "commit": git_commit(&repo), "engine": engine_release(&repo), "game": game_version(&repo)?, "map": options.map, "pairings": options.pairs.len(),
             "reps": options.reps, "sizing": format!("{:?}", options.sizing), "time_limit": options.time_limit,
             "speed": options.speed, "sweep_waves": options.sweep_waves, "spacing": options.spacing, "formations": shapes, "lanes": [options.lanes[0].label(), options.lanes[1].label()], "sites": options.sites, "duels_per_match": options.duels_per_match,
             "scenario": options.scenario.as_ref().map(|s| s.centre), "chase": options.chase, "raid": options.raid,
@@ -287,7 +289,7 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, batch: &Arc<Batch
     }
     let script_path = dir.join("script.txt");
     let engine_seed = seed.unwrap_or(index as u32 + 1);
-    fs::write(&script_path, script::render(&resolve_game(repo, GAME_TAG)?, &options.map, host_port, host_port + 1, engine_seed, options.boxes, names_legion()))?;
+    fs::write(&script_path, script::render(&game_version(repo)?, &options.map, host_port, host_port + 1, engine_seed, options.boxes, names_legion()))?;
 
     let mut autohost = Autohost::bind(host_port + 1)?;
     // Unix socket paths are limited to ~108 bytes, so the socket cannot live in the match directory.

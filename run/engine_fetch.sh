@@ -10,7 +10,7 @@
 # Barb3's library is (its BUILD-NOTE.txt).
 #
 # A batch tries a release without moving the link: WITHIN_REASON_ENGINE=<release> before `arena` or `duel`
-# (docs/harness/engine.md, "Moving to a new engine release"). A demo replays only on the engine that recorded it, and
+# (docs/harness/engine.md, "Moving to a new release"). A demo replays only on the engine that recorded it, and
 # run/replay_match.py picks that engine from run/engines by the demo's header, so the older releases stay.
 set -eu
 root=$(cd "$(dirname "$0")/.." && pwd)

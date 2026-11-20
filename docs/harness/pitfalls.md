@@ -38,34 +38,32 @@
   hundreds of times per match means its orders are not executing. `DROPPED order` lines in `bot.log` and
   `WITHIN_REASON_TRACE_BUILDS` placements in `engine.log` say which and where.
 
-## Fetching one game version for a replay strands the arena until `byar:test` is fetched too
+## The arena's game version is `run/game_version`; a rapid tag moved under it at every fetch
 
-`pr-downloader --download-game "Beyond All Reason test-NNNNN-xxxxxxx"` (what `run/replay_match.py` needs for a demo
-from another build) also refreshes `run/data/rapid/.../versions.gz`, so the `byar:test` tag now names whatever build
-is current upstream. The arena resolves the tag from that file and the engine dies in two seconds with `Dependent
-archive "beyond all reason test-NNNNN" not found` (escalate-1-easy, 2026-09-22: the aborted match, no game). After
-fetching a version for a replay, fetch `byar:test` too (docs/harness/engine.md, the same command with the tag) before
-the next batch; the pool dedups, so it is a few hundred files. Or keep the arena on its build: copy `versions.gz` aside before the fetch and back
-after it (2026-11-10, the Erebos Lakes lobby replay: test-31908 fetched, the file put back once the replay had ended, so
-`byar:test` still names test-31836; the pool only gained files. The replay itself ran while the file named the new
-build, and no arena batch has run since, so neither half is tested beyond that).
-When the version fetched is itself the current one nothing dies: the arena's next batch plays the newer game with no
-word of it, and its rows are not comparable with the ones before (2026-11-06: test-31836 fetched for a lobby replay
-while a bench on test-31691 was running; the tag's line in `versions.gz` was rewritten by hand to name test-31691
-again before the next row started; the tag was set to test-31836 the same afternoon on the user's word and the
-rows from dist177 on are that game's). Check `GameType` in a row's `_script.txt` after any fetch.
-With the downloader of engine 2026.09.03 a map alone no longer moves the tag (2026-11-19: `--download-map "Eye Of
-Horus 1.7.1"` left `versions.gz` byte for byte), as its changelog says; a game still does, named in full or by tag
-(the same day: fetching test-31986 by name left `byar:test` naming test-32018, that hour's build). And no batch may
-be starting matches while the file names another build: the arena and the duel runner resolve the tag at every
-match's start, so the fetch waits for the benches to end, or the file is put back before the next match begins.
+The arena and the duel runner name their game in full, from the tracked file `run/game_version` (docs/harness/engine.md,
+"Game data"), and `batch.json` records it as `game`. Fetch whatever a replay needs, at any time: nothing of ours reads
+the rapid tag any more. A batch whose `game` is not the file's was started with `WITHIN_REASON_GAME` set.
+
+Why it is so. Until 2026-11-19 the arena named the tag `byar:test`, resolved at every match's start from
+`run/data/rapid/.../byar/versions.gz`, and `pr-downloader --download-game` (by tag or by a build's full name, which
+`run/replay_match.py` needs for a demo from another build) rewrites that file so the tag names the newest build:
+- 2026-09-22, escalate-1-easy: a replay's build was fetched, the tag named a build not in the pool, and the engine
+  died in two seconds with `Dependent archive "beyond all reason test-NNNNN" not found` (the aborted match, no game).
+- 2026-11-06: test-31836 was fetched for a lobby replay while a bench on test-31691 was running; the bench's next
+  rows would have played the newer game with no word of it, and the tag's line was rewritten by hand before the next
+  row started. The arena was moved to test-31836 the same afternoon on the user's word (rows from dist177 on).
+- 2026-11-10 to 2026-11-19: `versions.gz` was copied aside before every lobby replay's fetch and put back after it
+  (Erebos Lakes, the seven games of 2026-11-15, the three of 2026-11-16, the engine check's smoke on test-32018).
+With the downloader of engine 2026.09.03 a map alone no longer rewrites the file (2026-11-19: `--download-map "Eye Of
+Horus 1.7.1"` left it byte for byte); a game still does. A full name needs no index at all (2026-11-19: a duel played
+with `versions.gz` moved away), since the engine names a package by the `modinfo.lua` in it.
 
 ## A replay that names the game by rapid tag will not open in the lobby
 
 The engine accepts `GameType=byar:test` and resolves the tag itself, but the name goes into the replay's header as
-written. The BAR lobby reads the header, cannot resolve a tag, and sits at "byar:test: 0%". The arena now resolves the
-tag to the full name (`resolve_game`, from `run/data/rapid/*/byar/versions.gz`) before writing the start script.
-Replays recorded before that: `run/fix_replay.py <match dir>` writes a `.fixed.sdfz` copy with the header corrected
+written. The BAR lobby reads the header, cannot resolve a tag, and sits at "byar:test: 0%". The arena writes the
+full name into the start script (`game_version`, from `run/game_version`; the section above).
+Replays recorded before it did: `run/fix_replay.py <match dir>` writes a `.fixed.sdfz` copy with the header corrected
 (checked: the copy loads and plays in the headless engine; the game stream is untouched).
 
 

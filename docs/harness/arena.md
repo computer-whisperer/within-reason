@@ -18,7 +18,9 @@ the speed over the autohost channel, reads the winner from SERVER_GAMEOVER, and 
 - After a batch the arena prints mean heuristic firings per match for wins against losses (from the `rules:` lines in
   `bot.log`) and a ledger row for `docs/experiments.md`; `batch.json` records label, commit and options, and since
   2026-11-19 the engine release (`engine`): `run/engine`'s, or `run/engines/<WITHIN_REASON_ENGINE>` when that is set
-  for a batch on another release (engine.md, "Moving to a new release"; the duel runner the same).
+  for a batch on another release (engine.md, "Moving to a new release"; the duel runner the same), and the game
+  version (`game`): the tracked `run/game_version`'s, or `WITHIN_REASON_GAME` when that is set (engine.md, "Game
+  data"). An older batch's game is the `gametype` line of a match's `_script.txt`.
 - `game_minutes` is read from the last `[f=N]` in the engine log after exit.
 - An opponent's state between games (Apex's `apex-record.txt`, the exchange matrix that prices unit matchups) is carried
   under `run/data/opponent-state/<Name>-<Version>/`: the AI's own directory's files at the top, and under `skirmish/` the

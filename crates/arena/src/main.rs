@@ -65,8 +65,8 @@ use serde::Serialize;
 
 use arena::autohost::{Autohost, Event};
 use arena::harness::{
-    ENGINE_MEMORY_GB, GAME_TAG, JevMeter, LOAD_ALLOWANCE, REPO, available_memory_gb, compress_jev_logs, copy_tree, drop_match_caches, engine_dir, engine_release,
-    git_commit, last_frame, refresh_cache_template, resolve_game, stop,
+    ENGINE_MEMORY_GB, JevMeter, LOAD_ALLOWANCE, REPO, available_memory_gb, compress_jev_logs, copy_tree, drop_match_caches, engine_dir, engine_release,
+    game_version, git_commit, last_frame, refresh_cache_template, stop,
 };
 use script::{Boxes, MatchSetup};
 
@@ -313,7 +313,7 @@ fn main() -> io::Result<()> {
     fs::write(
         batch_dir.join("batch.json"),
         serde_json::to_string_pretty(&serde_json::json!({
-            "label": options.label, "commit": commit, "engine": engine_release(&repo), "opponent": format!("{} {}", opponent_name(&options.opponent), options.profile),
+            "label": options.label, "commit": commit, "engine": engine_release(&repo), "game": game_version(&repo)?, "opponent": format!("{} {}", opponent_name(&options.opponent), options.profile),
             "map": options.map, "matches": options.matches, "parallel": options.parallel, "speed": options.speed,
             "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "start_delay": options.start_delay, "mirror": options.mirror, "place": options.place, "starts": options.starts, "call_settled": options.call_settled, "tape": options.tape, "pieces": options.pieces, "jev_budget": options.jev_budget, "swap_corners": options.swap_corners, "our_ai": options.our_ai, "pianist": options.pianist, "player": options.player, "player_model": options.player_model, "brief": options.brief.as_deref().unwrap_or("rework"), "live_edge": options.live_edge, "players": options.players.as_deref().unwrap_or("one"), "claude_config_dir": options.claude_config_dir, "commander": options.commander.as_deref().unwrap_or("none"), "commander_effort": options.commander_effort, "objective": options.objective, "packet_example": options.packet_example, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "hands_layers": options.hands_layers, "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "think_cap": options.think_cap.as_deref().or(options.player.then_some("7")), "turn_limit": options.turn_limit, "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "opponent_options": options.opponent_options, "our_bonus": options.our_bonus, "enemy_bonus": options.enemy_bonus, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "ally_ai": options.ally_ai, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
         }))?,
@@ -387,7 +387,7 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
     let dir = batch_dir.join(format!("{index:02}"));
     fs::create_dir_all(&dir)?;
     let host_port = options.base_port + 2 * index as u16;
-    let game = resolve_game(repo, GAME_TAG)?;
+    let game = game_version(repo)?;
     let opponent_defaults = option_defaults(repo, &options.opponent) + &options.opponent_options.iter().map(|o| format!("{o}; ")).collect::<String>();
     let setup = MatchSetup {
         game: &game,

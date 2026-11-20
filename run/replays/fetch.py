@@ -6,8 +6,8 @@
 
 Demos go to run/data/replays/<map file name>/<demo file name>; a line that has its demo is left alone. `--maps` fetches
 every kept map not in run/data/maps with pr-downloader; `--versions` fetches every kept game version not in the
-rapid pool, then `byar:test` again (docs/harness/pitfalls.md: fetching one version moves the tag the arena needs).
-Never run `--versions` while an arena batch runs. Without `--maps`/`--versions` the script only says what is missing.
+rapid pool (the arena's own version is the tracked `run/game_version`, which no fetch moves: docs/harness/engine.md,
+"Game data"). Without `--maps`/`--versions` the script only says what is missing.
 """
 import glob, gzip, json, os, subprocess, sys, urllib.request
 
@@ -17,10 +17,10 @@ ENV = {"PRD_RAPID_USE_STREAMER": "false", "PRD_RAPID_REPO_MASTER": "https://repo
 
 
 def downloader():
-    found = sorted(glob.glob(os.path.join(REPO, "run", "engines", "*", "pr-downloader")))
-    if not found:
-        sys.exit("no pr-downloader under run/engines")
-    return found[-1]
+    path = os.path.join(REPO, "run", "engine", "pr-downloader")
+    if not os.path.exists(path):
+        sys.exit("no pr-downloader in run/engine (run/engine_fetch.sh)")
+    return path
 
 
 def installed_versions():
@@ -88,8 +88,7 @@ def main():
     if "--versions" in args and versions_missing and not dry:
         for v in versions_missing:
             subprocess.run([downloader(), "--filesystem-writepath", DATA, "--download-game", v], env={**os.environ, **ENV}, check=False)
-        subprocess.run([downloader(), "--filesystem-writepath", DATA, "--download-game", "byar:test"], env={**os.environ, **ENV}, check=False)
-        print("versions fetched; byar:test refetched")
+        print("versions fetched")
 
 
 if __name__ == "__main__":
