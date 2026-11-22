@@ -309,7 +309,18 @@ def table(rows, header=None, indent="  "):
 
 
 def section_economy(g, top):
+    # A side's ninth number is the part of its pull the low-priority builders were held back from (the game publishes
+    # it from its commit 6ff6ce2 of 2026-11-22, and the pull then has it in it); -1, or no ninth number in a dump made
+    # before, where the game's version publishes none.
+    def held(s, kind):
+        return s[kind][8] if len(s[kind]) > 8 else -1
+
+    published = any(held(s, kind) >= 0 for sides in g.sides.values() for s in sides.values() for kind in "me")
     print("\n== ECONOMY by minute (store at the minute / mean income, pull and spend over it; stall = seconds the energy store was under 5 %; waste = overflow) ==")
+    if published:
+        print(" (held = the part of the pull the low-priority builders were held back from)")
+    else:
+        print(" (the pull is the engine's alone: this game's version does not publish what low-priority builders are held back from, and a builder the game has stopped asks for nothing)")
     for team in (g.us, g.them):
         print(f" {g.label(team)}")
         rows = []
@@ -326,14 +337,18 @@ def section_economy(g, top):
             e_inc = sum(s["e"][3] for s in sides) / n
             e_pull = sum(s["e"][2] for s in sides) / n
             e_exp = sum(s["e"][4] for s in sides) / n
+            m_held = [f"{sum(max(0, held(s, 'm')) for s in sides) / n:.1f}"] if published else []
+            e_held = [f"{sum(max(0, held(s, 'e')) for s in sides) / n:.0f}"] if published else []
             stall = sum(1 for s in sides if s["e"][0] < 0.05 * max(1, s["e"][1]))
             mfull = sum(1 for s in sides if s["m"][0] > 0.9 * max(1, s["m"][1]))
             st = sides[-1].get("st", {})
             m_x, e_x = st.get("metal_excess", 0) or 0, st.get("energy_excess", 0) or 0
             end = sides[-1]
-            rows.append([clock(start), f"{end['m'][0]:.0f}/{end['m'][1]:.0f}", f"{m_inc:.1f}", f"{m_pull:.1f}", f"{m_exp:.1f}", f"{m_x - last_m:.0f}", mfull, f"{end['e'][0]:.0f}/{end['e'][1]:.0f}", f"{e_inc:.0f}", f"{e_pull:.0f}", f"{e_exp:.0f}", f"{e_x - last_e:.0f}", stall])
+            rows.append([clock(start), f"{end['m'][0]:.0f}/{end['m'][1]:.0f}", f"{m_inc:.1f}", f"{m_pull:.1f}", *m_held, f"{m_exp:.1f}", f"{m_x - last_m:.0f}", mfull,
+                         f"{end['e'][0]:.0f}/{end['e'][1]:.0f}", f"{e_inc:.0f}", f"{e_pull:.0f}", *e_held, f"{e_exp:.0f}", f"{e_x - last_e:.0f}", stall])
             last_m, last_e = m_x, e_x
-        table(rows, ["min", "metal", "inc", "pull", "spent", "wasted", "full s", "energy", "inc", "pull", "spent", "wasted", "stall s"])
+        held_column = ["held"] if published else []
+        table(rows, ["min", "metal", "inc", "pull", *held_column, "spent", "wasted", "full s", "energy", "inc", "pull", *held_column, "spent", "wasted", "stall s"])
 
 
 def float_spans(g, team, bar=0.5, floor=400):

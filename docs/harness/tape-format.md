@@ -21,10 +21,23 @@ alive at every sample with its place, attitude, health, build progress, order, s
 every order, projectile and burst, every moving piece's state, the tables and the ground. The moving pieces (turrets,
 legs, arms, doors: below) are captured unless `--no-pieces`; `--keep` keeps the raw stream.
 
-**Format 6 alone** (2026-11-16, as format 5 was the same day): the packer reads raw streams of version 6 and the
+**Format 6 alone** (2026-11-16, as format 5 was the same day): the packer reads raw streams of version 7 and the
 reader tapes of format 6, and refuse any other with "capture it again". Format 6 adds the game's numbers the page's
 strip and charts need (docs/design/2026-11-16-viewer-stats.md): the wind a second, ten more numbers a team a second
 in `TEAM`, five more fields a unit type in `DEFS`. A tape is a cache of its demo: `run/tape.py <match dir>` makes it again.
+
+**The pull, and the part of it the game holds back** (raw version 7, 2026-11-22; the tape's format is still 6). BAR's
+builder priority gadget stops a low-priority builder the team cannot afford by setting its build speed to nothing, and
+the engine counts no pull for a builder that asks for nothing: the engine's pull left those builders out. From the
+game's commit 6ff6ce2 (2026-11-22, its PR 9825) the gadget publishes what they would have drawn at full speed as the
+team rules params `hiddenMetalPull` and `hiddenEnergyPull` (a second, the mean over the engine's own window of 30
+frames; readable by allies and spectators), and the game's own bars show the engine's pull plus that
+(`GetTeamRealResources`). The widget writes the same sum as `metal_pull` and `energy_pull`, and the held-back parts
+alone as two more columns at a row's end, `metal_pull_hidden` and `energy_pull_hidden`: -1 where the game's version
+publishes none, and there the pull is the engine's alone, as on every tape before. The format did not move, because a
+tape made again from its demo would hold the same numbers (a demo plays on its own game version): a tape from before
+has rows that end at `orders`, and a reader takes a missing column as one the game does not publish (`tape stats` and
+the page leave the two metrics out, as they do what was reclaimed).
 **When runs are archived, their tapes are not**: a match directory moved to the archive leaves its `game.tape` behind
 and keeps its demo (the user's plan, 2026-11-16; the runs are archived by hand).
 
@@ -136,7 +149,9 @@ dropped with the unit. The packer now names a killer that died first (by the las
 unit's build progress as it died from its `destroyed` row. Version 4 (2026-11-16) adds the moving pieces. Version 5
 (2026-11-16) drops the weapons' aim (`A`: the page never drew it, and the pieces turn the turrets) and writes the
 attitude in 1024ths of a turn (was 4096ths), a piece's angles in 1024ths of a radian (was 16384ths) and its place in
-quarters of an elmo (was sixteenths): finer numbers only made the tape bigger (section 10 of the design). A widget's
+quarters of an elmo (was sixteenths): finer numbers only made the tape bigger (section 10 of the design). Version 6
+(2026-11-16) adds the numbers of the page's strip and charts. Version 7 (2026-11-22) writes the pull whole and the part
+of it the game holds its low-priority builders back from (above, "The pull"). A widget's
 mistakes
 show only in the engine's log (`run/tape.py --keep`, then `infolog.txt` in `tape-capture/`: "Error in GameFrame()" and
 the widget is gone); `luac5.1 -l -p tape_dump.lua | grep GETGLOBAL` lists every global it reads, where a local used
@@ -157,7 +172,7 @@ Little-endian. `magic "WRTAPE\1\0"`, then chunks, then a footer.
 | `SLIC` | a slice, below; one every `slice_frames`, in order |
 | `UNIT` | a row a unit life, in the order created; **the row number is the tape's id of a unit** (the engine reuses its ids) and everything in the tape names a unit by it, 1-based where 0 means none. Engine id, type, team, mobile, the frames created, finished and destroyed, the rows of its killer and builder, full health, health and build progress at birth, where it first stood and how it was turned, where it died, the teams it was given to |
 | `FEAT` | a row a feature (tree, rock, wreck): the engine's id, type, team, the frames it appeared and went, place, front and up directions, metal, energy |
-| `TEAM` | JSON: `frames` [f], `wind` [the wind's strength at each of those frames, `Spring.GetWind`'s fourth], `columns` (the names: metal, store, pull, income, spend and the same of energy, then metal's excess, sent and received and energy's; then `conv_use` and `conv_capacity`, the converters' energy in use and their capacity (the game's `mmUse` and `mmCapacity` team rules params), `metal_reclaimed` and `energy_reclaimed` so far (the game's `teamStatsReclaimedMetal` and `...Energy`; -1 where its version keeps no count), `build_power` of the team's finished builders and `build_power_used` (each one's build speed times `GetUnitCurrentBuildPower`), `cons` and `idle_cons` (builders that move and are no commander, and those of them without an order), `labs` and `idle_labs` (factories, and those with an empty line), `orders` (commands given to the team's units since the row before)), `teams` {team: [the columns a second, null before a team first appears]}, `stat_columns` and `stats` {team: [[frame, metal used, produced, excess, energy used, produced, excess, damage dealt, received, units made, lost, killed] as the engine's statistics changed]} |
+| `TEAM` | JSON: `frames` [f], `wind` [the wind's strength at each of those frames, `Spring.GetWind`'s fourth], `columns` (the names: metal, store, pull, income, spend and the same of energy, then metal's excess, sent and received and energy's; then `conv_use` and `conv_capacity`, the converters' energy in use and their capacity (the game's `mmUse` and `mmCapacity` team rules params), `metal_reclaimed` and `energy_reclaimed` so far (the game's `teamStatsReclaimedMetal` and `...Energy`; -1 where its version keeps no count), `build_power` of the team's finished builders and `build_power_used` (each one's build speed times `GetUnitCurrentBuildPower`), `cons` and `idle_cons` (builders that move and are no commander, and those of them without an order), `labs` and `idle_labs` (factories, and those with an empty line), `orders` (commands given to the team's units since the row before), and from raw version 7 `metal_pull_hidden` and `energy_pull_hidden` (the part of each pull the game's low-priority builders were held back from, which the pull has in it; -1 where the game's version publishes none; above, "The pull")), `teams` {team: [the columns a second, null before a team first appears]}, `stat_columns` and `stats` {team: [[frame, metal used, produced, excess, energy used, produced, excess, damage dealt, received, units made, lost, killed] as the engine's statistics changed]} |
 | `FMET` | JSON: [[frame, the feature's index in `FEAT`, whole metal]] as a wreck's metal changed |
 | `EVNT` | JSON: the rare events as the widget wrote them: chat, the players' marks, the end with its winners |
 | `GPAT` | every change to the ground after the start, in order: frame, column, row, columns, rows, then the u16 heights. The ground at a frame is `GRND` with the patches up to it |

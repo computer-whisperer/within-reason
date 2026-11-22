@@ -111,6 +111,39 @@ progressing while the team's metal sat at zero with a high constructor stalled.
 **Used by.** H-HANDS-PRIORITY-BIRTH, H-HANDS-LIST-LOW (`Command::Priority` through `COMMAND_UNIT_CUSTOM`, study §4),
 D-PRIORITY (`bots/distilled`). What the pros do with it: K-econ-commander-low-while-assisting,
 K-econ-expanding-constructor-high (economy.md).
+**Reopened in part (2026-11-22).** "An AI's builders (ours, BARb's, Apex's) are all high" does not hold for BARb, and
+"defined, never sent" was a misreading: the same copy of its source sends the command from three places
+(`upstream/CircuitAI/src/circuit/task/static/RecruitTask.cpp:84-104`, a plant low while the metal pull is over twice
+the mean income and back when it is not; `task/builder/BuilderTask.cpp:508-516`, a constructor low or high by what it
+builds and the state of its stores; `module/FactoryManager.cpp:180-183`, a support unit low as it is made), and in
+`run/matches/1795389182-hidden-pull-6ff6ce2` BARb's side had pull held back in 107 of 601 seconds, which only a low
+builder the gadget has stopped makes (K-mech-held-back-pull-is-published). Ours are low where the heuristics above say
+so, since 2026-10-13. Apex's was not looked at again. The rest of the claim stands.
+
+### K-mech-held-back-pull-is-published
+**Claim.** The engine's pull (`GetTeamResources`' third number, the AI interface's `Economy_getPull`) leaves out every
+low-priority builder the game has stopped: the gadget stops one by setting its build speed to nothing
+(K-mech-builder-priority-is-a-builder-flag), and a builder that asks for nothing is counted for nothing. So in a stall a
+side with low builders shows a pull near its spending however much build power stands waiting. From the game's commit
+6ff6ce2 (2026-11-22, its PR 9825) the gadget publishes what the stopped builders would draw at full speed as the team
+rules params `hiddenMetalPull` and `hiddenEnergyPull`: a second, the mean over the engine's own window of 30 frames,
+set at the frame after the engine closes a window, readable by the team's allies and by spectators (an AI reads its
+own with `Team_getRulesParamFloat`). The whole pull is the engine's plus that, which is what the game's own top bar
+shows from that commit (`GetTeamRealResources`). A game from before it has no such params.
+**Status.** supported (2026-11-22) from the gadget's source and one game played on that source
+**Evidence.** `luarules/gadgets/unit_builder_priority.lua` and `common/springUtilities/teamFunctions.lua` at 6ff6ce2;
+the engine's order within a frame (`rts/Game/Game.cpp` `SimFrame`: the call-ins before `teamHandler.GameFrame`, which
+closes the window on frames that divide by 30). `run/matches/1795389182-hidden-pull-6ff6ce2` (a hand-run on that
+source, its README says how; WRDistilled against BARb hard_aggressive, Sertaleina, ten minutes): our side had pull held
+back in 206 of 601 seconds, at most 40.4 metal and 263.7 energy a second, BARb's in 107, at most 20.0 and 163.7; at
+2:07 our whole metal pull 9.6 was the 5.4 spent and the 4.2 held back, the energy's 59.5 the 9.0 spent and 50.5 held
+back. On the arena's game (test-32018, before the commit) the params are absent: the same widget wrote -1 for both and
+every number of `run/matches/1795140751-dist421-tables-sertaleina-barb/00` taped again was the one its tape had.
+**Would be wrong if.** A side whose builders are all high showed pull held back, or a stopped low builder's draw was
+in the engine's pull as well (the sum would then run past what the side's build power can draw).
+**Used by.** No heuristic. The instruments: the tape's and the audit's pull is the whole one where the game publishes
+the params, with the held-back part beside it (`docs/harness/tape-format.md`, "The pull"; `docs/harness/audit.md`).
+No bot reads either pull: they reason from what was spent (`Economy_getUsage`) and from their own sums of build power.
 
 ### K-mech-set-target-fires-on-the-move
 **Claim.** BAR's target-on-the-move gadget (`luarules/gadgets/unit_target_on_the_move.lua`, `CMD_UNIT_SET_TARGET`

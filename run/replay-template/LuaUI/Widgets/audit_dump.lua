@@ -122,9 +122,15 @@ local function def(id)
 	return id
 end
 
+-- The pull is the whole of it: the engine's, plus what the low-priority builders were held back from, which the game
+-- publishes from its commit 6ff6ce2 (2026-11-22) as the team rules params `hiddenMetalPull` and `hiddenEnergyPull`
+-- (tape_dump.lua's `resources` has the mechanism). The ninth number is that held-back part, -1 where the game's
+-- version publishes none: there the pull is the engine's alone.
+local HIDDEN = { metal = "hiddenMetalPull", energy = "hiddenEnergyPull" }
 local function resources(team, kind)
 	local cur, store, pull, income, expense, _, sent, received, excess = Spring.GetTeamResources(team, kind)
-	return { cur or 0, store or 0, pull or 0, income or 0, expense or 0, excess or 0, sent or 0, received or 0 }
+	local hidden = Spring.GetTeamRulesParam(team, HIDDEN[kind])
+	return { cur or 0, store or 0, (pull or 0) + (hidden or 0), income or 0, expense or 0, excess or 0, sent or 0, received or 0, hidden or -1 }
 end
 
 local function stats(team)

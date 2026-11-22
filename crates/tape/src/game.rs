@@ -24,7 +24,7 @@ pub const ANGLE_TURN: i32 = 1024;
 
 /// The raw stream's version this packer reads (`tape_dump.lua`'s header), and no other: a stream of an older widget is
 /// captured again from its demo.
-pub const RAW_VERSION: u32 = 6;
+pub const RAW_VERSION: u32 = 7;
 
 /// An angle (or a difference of two) brought into -512..=511.
 pub fn wrap(angle: i32) -> i32 {
@@ -207,7 +207,9 @@ pub struct Game {
     pub bursts: Vec<Burst>,
     pub orders: Vec<Order>,
     /// Each second's resources: (frame, [[team, metal, store, pull, income, spend, energy, store, pull, income, spend]]),
-    /// from raw version 3 with metal's excess, sent and received and energy's after them.
+    /// from raw version 3 with metal's excess, sent and received and energy's after them. From raw version 7 the pull
+    /// is the whole of it (the engine's and what low-priority builders were held back from) and a row ends with the
+    /// two held-back parts (`pack::teams_table` names every column).
     pub resources: Vec<(u32, Value)>,
     /// The wind's strength at each of those seconds (raw version 6), beside `resources`.
     pub wind: Vec<f32>,

@@ -78,7 +78,8 @@ toggle from the widget's (`NETMSG_AICOMMANDS`, aiID 255, from `Spring.GiveOrderT
 
 **No AI gets the widget.** It runs in the player's own LuaUI for `myTeamID`; an AI team has no LuaUI. So our bot's
 labs and turrets have always been high priority, BARb's too (CircuitAI defines `CMD_BAR_PRIORITY 34571` and never
-sends it; Apex does not name it). Our plant competes with our constructors by creation order, where a human's
+sends it; Apex does not name it). (Corrected 2026-11-22: BARb does send it, and a game showed its builders stopped as
+low ones are; docs/knowledge/mechanics.md, K-mech-builder-priority-is-a-builder-flag, "Reopened in part".) Our plant competes with our constructors by creation order, where a human's
 yields: a difference from every human game we have read, hidden until now.
 
 ## 4. Our bindings

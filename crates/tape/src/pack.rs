@@ -138,7 +138,7 @@ pub fn cut(game: &Game, first: u32) -> Slice {
     slice
 }
 
-/// The resources table: each team's ten numbers a second, as columns.
+/// The resources table: each team's numbers a second, as columns.
 fn teams_table(game: &Game) -> Value {
     let mut frames = Vec::new();
     let mut teams: serde_json::Map<String, Value> = Default::default();
@@ -163,6 +163,11 @@ fn teams_table(game: &Game) -> Value {
         // keeps no count), the finished builders' build power and how much is in use, the constructors and the idle
         // of them, the plants and the idle of them, the orders given that second
         "conv_use", "conv_capacity", "metal_reclaimed", "energy_reclaimed", "build_power", "build_power_used", "cons", "idle_cons", "labs", "idle_labs", "orders",
+        // (raw version 7, 2026-11-22) the part of each pull the low-priority builders were held back from, which the
+        // game publishes from its commit 6ff6ce2 (`hiddenMetalPull`, `hiddenEnergyPull`) and the pull columns have
+        // in them; -1 where the game's version publishes none, and there the pull is the engine's alone. A tape made
+        // before has rows that end at `orders`: a reader finds no value and takes the two as not published.
+        "metal_pull_hidden", "energy_pull_hidden",
     ];
     // The engine's statistics of each team, a row as it added an entry: [frame, the numbers].
     let mut stats: serde_json::Map<String, Value> = Default::default();

@@ -3,7 +3,8 @@
 //! for a script or a review agent. `docs/design/2026-11-16-viewer-stats.md`.
 //!
 //! Every metric is additive: a side's number is the sum of its teams'. Three sources: the `TEAM` table's rows a
-//! second (what is stored, the capacity, income, spend, pull; the converters' energy in use and capacity; the build
+//! second (what is stored, the capacity, income, spend, pull and the part of the pull low-priority builders were held
+//! back from; the converters' energy in use and capacity; the build
 //! power and how much is in use; the constructors and plants and the idle of each; the orders given; what was
 //! reclaimed; what was sent and received, summed here into running totals), the engine's own running statistics in
 //! the same table, and the `UNIT` table with the types (how many stand finished, the extractors, count and metal
@@ -62,11 +63,13 @@ pub const METRICS: &[Metric] = &[
     m("metal_income", "metal income", "live", Kind::Rate),
     m("metal_spend", "metal spend", "live", Kind::Rate),
     m("metal_pull", "metal pull", "live", Kind::Rate),
+    m("metal_pull_hidden", "metal pull held back (low priority)", "live", Kind::Rate),
     m("energy", "energy stored", "live", Kind::Level),
     m("energy_store", "energy capacity", "live", Kind::Level),
     m("energy_income", "energy income", "live", Kind::Rate),
     m("energy_spend", "energy spend", "live", Kind::Rate),
     m("energy_pull", "energy pull", "live", Kind::Rate),
+    m("energy_pull_hidden", "energy pull held back (low priority)", "live", Kind::Rate),
     m("build_power", "build power", "live", Kind::Level),
     m("build_power_used", "build power in use", "live", Kind::Level),
     m("conv_use", "conversion: energy in use", "live", Kind::Rate),
@@ -156,8 +159,8 @@ pub struct Stats {
     pub values: Vec<f32>,
     /// The wind's strength a second.
     pub wind: Vec<f32>,
-    /// The metrics this game has no numbers for (a game version that keeps no count of what is reclaimed): their
-    /// values are zeros and no reader should show them.
+    /// The metrics this game has no numbers for (a game version that keeps no count of what is reclaimed, or
+    /// publishes no pull of the builders it holds back): their values are zeros and no reader should show them.
     pub absent: Vec<&'static str>,
 }
 
@@ -284,7 +287,7 @@ pub fn compute(tape: &Tape) -> Result<Stats> {
     let frames: Vec<u32> = table.get("frames").and_then(Value::as_array).into_iter().flatten().map(|f| f.as_f64().unwrap_or(0.0) as u32).collect();
     let held = [
         "metal", "metal_store", "metal_income", "metal_spend", "metal_pull", "energy", "energy_store", "energy_income", "energy_spend", "energy_pull", "conv_use", "conv_capacity",
-        "metal_reclaimed", "energy_reclaimed", "build_power", "build_power_used", "cons", "idle_cons", "labs", "idle_labs", "orders",
+        "metal_reclaimed", "energy_reclaimed", "build_power", "build_power_used", "cons", "idle_cons", "labs", "idle_labs", "orders", "metal_pull_hidden", "energy_pull_hidden",
     ];
     let summed = ["metal_sent", "metal_received", "energy_sent", "energy_received"];
     // The wind, a value a row.
@@ -298,8 +301,9 @@ pub fn compute(tape: &Tape) -> Result<Stats> {
         stats.wind[second] = value;
     }
     // What the game counts only in some of its versions is written as -1 where it does not: absent, when no team
-    // ever has a count.
-    for name in ["metal_reclaimed", "energy_reclaimed"] {
+    // ever has a count (and on a tape made before the column was). With the held-back pull absent, the pull is the
+    // engine's alone: it leaves out the low-priority builders the game has stopped.
+    for name in ["metal_reclaimed", "energy_reclaimed", "metal_pull_hidden", "energy_pull_hidden"] {
         let column = columns.iter().position(|c| *c == name);
         let counted = column.is_some_and(|column| {
             table.get("teams").and_then(Value::as_object).into_iter().flat_map(|t| t.values()).filter_map(Value::as_array).flatten().any(|row| row.get(column).and_then(Value::as_f64).is_some_and(|v| v >= 0.0))
@@ -530,11 +534,39 @@ mod tests {
         assert_eq!((of(0, "build_power")[2], of(0, "build_power_used")[2], of(0, "idle_cons")[2], of(0, "conv_use")[2], of(0, "orders")[2]), (300.0, 150.0, 1.0, 3.0, 4.0));
         assert_eq!(of(1, "build_power")[..2], [0.0, 300.0]);
         assert_eq!(stats.wind[..5], [5.0, 6.5, 7.0, 8.0, 8.0]);
-        assert_eq!(stats.absent, ["metal_reclaimed", "energy_reclaimed"]);
+        // (this table's rows end at `orders`, as a tape's made before raw version 7 do: no held-back pull either)
+        assert_eq!(stats.absent, ["metal_reclaimed", "energy_reclaimed", "metal_pull_hidden", "energy_pull_hidden"]);
         assert_eq!(of(0, "metal_reclaimed")[3], 0.0);
+        assert_eq!((of(0, "metal_pull")[2], of(0, "metal_pull_hidden")[2]), (3.0, 0.0));
         // A side is the sum of its teams, and its name its first team's.
         assert_eq!(stats.sides().len(), 2);
         assert_eq!(stats.side_name(&stats.sides()[1].1), "cortex");
+    }
+
+    /// The pull low-priority builders are held back from (raw version 7): a metric where the game publishes it, absent
+    /// where every row says -1 (a game from before its commit 6ff6ce2).
+    #[test]
+    fn the_held_back_pull_is_a_metric_where_the_game_publishes_it() {
+        let table = |metal: [f64; 2], energy: [f64; 2]| {
+            let row = |i: usize| serde_json::json!([10, 500, 12.5, 4, 4, 900, 1000, 80, 60, 60, metal[i], energy[i]]);
+            serde_json::json!({
+                "frames": [30, 60],
+                "columns": ["metal", "metal_store", "metal_pull", "metal_income", "metal_spend", "energy", "energy_store", "energy_pull", "energy_income", "energy_spend", "metal_pull_hidden", "energy_pull_hidden"],
+                "teams": { "0": [row(0), row(1)] },
+            })
+        };
+        let mut tape = game();
+        tape.teams = table([0.0, 8.5], [0.0, 20.0]).to_string();
+        let stats = compute(&tape).unwrap();
+        let of = |key: &str| stats.series(0, metric(key).unwrap())[..3].to_vec();
+        assert!(!stats.absent.contains(&"metal_pull_hidden") && !stats.absent.contains(&"energy_pull_hidden"));
+        assert_eq!(of("metal_pull_hidden"), [0.0, 0.0, 8.5]);
+        assert_eq!(of("energy_pull_hidden"), [0.0, 0.0, 20.0]);
+        assert_eq!(of("metal_pull"), [0.0, 12.5, 12.5], "the pull column has the held-back part in it already");
+        tape.teams = table([-1.0, -1.0], [-1.0, -1.0]).to_string();
+        let stats = compute(&tape).unwrap();
+        assert!(stats.absent.contains(&"metal_pull_hidden") && stats.absent.contains(&"energy_pull_hidden"));
+        assert_eq!(stats.series(0, metric("metal_pull_hidden").unwrap())[2], 0.0);
     }
 
     #[test]

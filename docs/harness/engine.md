@@ -72,6 +72,13 @@ moving it, and `batch.json` records `game`. Rows on different game versions are 
 a move the benches are played again as the new baseline (`docs/experiments.md`, the rows of 2026-11-19 and of
 2026-11-06).
 
+**The first build with the game's commit 6ff6ce2 changes what the tapes' and the audits' pull holds** (2026-11-22;
+no build had it that day, the newest being test-32018). From it the pull is the whole one, with what the low-priority
+builders are held back from, and the held-back part is written beside it; before it the pull is the engine's alone
+(`docs/harness/tape-format.md`, "The pull"; K-mech-held-back-pull-is-published). A pull read across that move is not
+one series: a side with low builders in a stall reads higher after it with nothing changed in its play. No bench
+number is made from the pull.
+
 Until 2026-11-19 the arena named the rapid tag `byar:test` and resolved it at every match's start from the index
 pr-downloader keeps (`run/data/rapid/.../byar/versions.gz`), which every game fetch rewrites to the newest build:
 a replay's version fetched for a tape moved the arena with no word of it (2026-11-06, a bench's rows) or was put back

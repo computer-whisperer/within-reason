@@ -1043,6 +1043,14 @@ end
 -- count, -1 where its version keeps none), what `sampleWork` summed (build power, build power in use, constructors
 -- and the idle of them, plants and the idle of them) and the orders given to its units since the last row; and the
 -- row has the wind's strength, as the game's top bar shows it.
+--
+-- The pull (raw version 7) is the whole of it, as the game's own bars show it from its commit 6ff6ce2 (2026-11-22, PR
+-- 9825; `GetTeamRealResources`): the engine's, plus what the low-priority builders were held back from. The builder
+-- priority gadget stops such a builder by setting its build speed to nothing, so the engine counts no pull for it; the
+-- gadget publishes what those builders would have drawn at full speed as the team rules params `hiddenMetalPull` and
+-- `hiddenEnergyPull` (a second, the mean of the engine's own window of 30 frames, set at the frame after the engine
+-- closes a window: a row written on a frame that divides by 30 reads the two of one window). A team's row ends with
+-- the two held-back parts, -1 where the game's version publishes none: there the pull is the engine's alone.
 local statsLast = {} -- team -> the statistics last written, as one string
 local function resources(frame)
 	local rows, statRows = {}, {}
@@ -1052,11 +1060,13 @@ local function resources(frame)
 		local tenth = function(v) return round((v or 0) * 10) / 10 end
 		if m then
 			local w = industry[team] or { 0, 0, 0, 0, 0, 0 }
-			rows[#rows + 1] = { team, round(m), round(ms), tenth(mp), tenth(mi), tenth(me), round(e), round(es), tenth(ep), tenth(ei), tenth(ee),
+			local mh, eh = Spring.GetTeamRulesParam(team, "hiddenMetalPull"), Spring.GetTeamRulesParam(team, "hiddenEnergyPull")
+			rows[#rows + 1] = { team, round(m), round(ms), tenth((mp or 0) + (mh or 0)), tenth(mi), tenth(me), round(e), round(es), tenth((ep or 0) + (eh or 0)), tenth(ei), tenth(ee),
 				tenth(mx), tenth(msent), tenth(mrecv), tenth(ex), tenth(esent), tenth(erecv),
 				tenth(Spring.GetTeamRulesParam(team, "mmUse")), tenth(Spring.GetTeamRulesParam(team, "mmCapacity")),
 				round(Spring.GetTeamRulesParam(team, "teamStatsReclaimedMetal") or -1), round(Spring.GetTeamRulesParam(team, "teamStatsReclaimedEnergy") or -1),
-				round(w[1]), round(w[2]), w[3], w[4], w[5], w[6], ordersGiven[team] or 0 }
+				round(w[1]), round(w[2]), w[3], w[4], w[5], w[6], ordersGiven[team] or 0,
+				mh and tenth(mh) or -1, eh and tenth(eh) or -1 }
 			ordersGiven[team] = 0
 		end
 		-- (the last entry is the one the engine is filling: it changes between entries, so it is compared, not counted)
@@ -1131,7 +1141,7 @@ function widget:Initialize()
 	end
 	local low, high = Spring.GetGroundExtremes()
 	put({
-		t = "header", format = "within-reason-tape-raw", version = 6, live = Spring.IsReplay() and 0 or 1, max_units = Game.maxUnits, ally_teams = sightTeams, engine = Engine and Engine.version or "", game = Game.gameName .. " " .. Game.gameVersion,
+		t = "header", format = "within-reason-tape-raw", version = 7, live = Spring.IsReplay() and 0 or 1, max_units = Game.maxUnits, ally_teams = sightTeams, engine = Engine and Engine.version or "", game = Game.gameName .. " " .. Game.gameVersion,
 		sample_frames = SAMPLE, vitals_frames = VITALS, activity_frames = ACTIVITY, check_frames = CHECK, position_scale = POS, angle_scale = ANGLE,
 		pieces = piecesOn and 1 or 0, piece_angle_scale = A_SCALE, piece_place_scale = T_SCALE,
 		map = { name = Game.mapName, width = Game.mapSizeX, height = Game.mapSizeZ, gravity = Game.gravity, wind_min = Game.windMin, wind_max = Game.windMax,

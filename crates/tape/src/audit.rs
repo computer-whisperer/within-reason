@@ -154,8 +154,11 @@ pub fn write(file: &[u8], out: &mut impl Write) -> Result<Written> {
         let at = frames.partition_point(|f| *f <= frame).checked_sub(1);
         let row = at.and_then(|i| teams_table.get("teams")?.get(team.to_string())?.get(i)).and_then(Value::as_array);
         let get = |name: &str| row.and_then(|r| column(name).and_then(|c| r.get(c))).and_then(Value::as_f64).unwrap_or(0.0);
+        // (the ninth, the part of the pull low-priority builders were held back from: -1 where the game's version
+        // publishes none, and on a tape made before the column was)
+        let held_back = |kind: &str| row.and_then(|r| column(&format!("{kind}_pull_hidden")).and_then(|c| r.get(c))).and_then(Value::as_f64).unwrap_or(-1.0);
         let of = |kind: &str| -> Value {
-            ["", "_store", "_pull", "_income", "_spend", "_excess", "_sent", "_received"].iter().map(|s| figure(get(&format!("{kind}{s}")))).collect::<Vec<_>>().into()
+            ["", "_store", "_pull", "_income", "_spend", "_excess", "_sent", "_received"].iter().map(|s| figure(get(&format!("{kind}{s}")))).chain([figure(held_back(kind))]).collect::<Vec<_>>().into()
         };
         let stats = teams_table.get("stats").and_then(|s| s.get(team.to_string())).and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]);
         let st: serde_json::Map<String, Value> = at_or_before(stats, frame)
