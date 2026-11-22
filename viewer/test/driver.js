@@ -123,6 +123,14 @@ async function open({ firefox, out, width = 1600, height = 1000, fail }) {
 
   const page = await (firefox ? gecko() : chromium());
   page.kill = () => browser && browser.kill();
+  // The profile is the browser's scratch, some hundreds of megabytes in the temporary directory (memory, where that is
+  // a tmpfs): it goes with the test's process, however the test ends. (Until 2026-11-22 every run left its own.)
+  process.on("exit", () => {
+    if (browser) browser.kill("SIGKILL");
+    try {
+      fs.rmSync(profile, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+    } catch (_) {}
+  });
   return page;
 }
 
