@@ -78,6 +78,13 @@ builders are held back from, and the held-back part is written beside it; before
 (`docs/harness/tape-format.md`, "The pull"; K-mech-held-back-pull-is-published). A pull read across that move is not
 one series: a side with low builders in a stall reads higher after it with nothing changed in its play. No bench
 number is made from the pull.
+Two uses in the bots wait for that move, on the user's word (2026-11-22: "Wait on both 1 and 2 until the stable engine
+uses this"; the params are the game's, so read here as the lobby's ordinary game release having the commit and the
+arena's version moved to it). Neither is built. 1: the distilled bot's tests of spare energy read income less spending
+(`bots/distilled/src/tier2.rs`, `economy.rs`), which counts as spare what its stopped low builders would draw. 2: a
+held-back clause on the player's eco line and in Jev's picture (`crates/bot/src/strategist/report.rs` `eco_line`,
+`crates/bot/src/brain/pianist/picture.rs`). No bot reads either pull today; an AI reads the params for its own team
+with `Team_getRulesParamFloat`.
 
 Until 2026-11-19 the arena named the rapid tag `byar:test` and resolved it at every match's start from the index
 pr-downloader keeps (`run/data/rapid/.../byar/versions.gz`), which every game fetch rewrites to the newest build:
